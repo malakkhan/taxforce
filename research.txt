@@ -1,0 +1,229 @@
+Synthetic Dutch SME Taxpayer Dataset justification
+
+Synthetic Dutch SME Taxpayer Dataset
+Methodology & Justification
+1. Purpose of the Dataset
+The goal of this synthetic dataset is to approximate the Dutch SME (MKB) landscape in a way that is:
+- rich enough to be used for agent-based simulations (Mesa) and AI models,
+- recognisable for the Dutch tax authority context (Belastingdienst),
+- legally safe (no real taxpayers, no re-identification),
+- and still traceable to real-world patterns from public statistics and reports.
+
+The dataset is not meant to reproduce exact official numbers. It is a stylised, calibrated model:
+- grounded in public knowledge about Dutch SMEs (sector distribution, firm size, digitalisation, margins, risk sectors),
+- with explicit assumptions where real data is not public.
+
+This document explains the design choices, the variables, and the mathematics behind the generator.
+2. Overall Structure of the Generator
+The Python script generates a user-configurable number of synthetic firms (e.g. N_RECORDS = 200000). 
+For each synthetic firm i ∈ {1, …, N}, it creates one record with:
+- structural attributes (size class, sector, branch, region, legal form),
+- economic attributes (turnover, profit before tax, tax due),
+- behavioural/compliance attributes (filing correctness, filing timeliness, payment status, risk category),
+- context attributes (digitalisation level, fiscal advisor, cash intensity, prior control, historical risk score).
+
+The process is:
+1. Draw high-level attributes (size class, sector, legal form).
+2. Sample derived attributes (turnover, employees, branch, region, digitalisation, advisor, cash intensity, prior control).
+3. Compute profit and tax due based on simple fiscal rules.
+4. Compute a base risk score and then derive probabilities of:
+   - large/small/no errors,
+   - late/no filing,
+   - full/partial/no payment.
+5. Combine everything into a final risk category.
+
+Every step uses probability distributions and deterministic functions, which are detailed below.
+3. Population Design: Size Classes and Number of Firms
+3.1 Size Classes
+We use three firm size classes:
+- micro: 1–9 employees
+- klein: 10–49 employees
+- midden: 50–249 employees
+
+This follows the EU SME definition (Anon., 2016) in spirit, but we merge “zzp + micro” into one micro category for simplicity.
+In CBS you can see a pattern
+micro business around 75–90%,
+small around 8–20%,
+midden a few remaining percentage points.
+
+Formally, the size class S is sampled with probabilities:
+P(S = micro) = 0.82,
+P(S = klein) = 0.14,
+P(S = midden) = 0.04.
+
+Conditional on S, the number of employees E is sampled uniformly over the appropriate range.
+3.2 Turnover by Size Class
+This reflects typical NL micro-enterprises:
+•	one-person shops, freelancers, small horeca, small bouwbedrijven
+•	turnover often €70k–€300k in CBS tables
+•	some go higher, but most sit under €400k
+So I set 80k–400k as a clean synthetic interval.
+Small businesses with:
+•	2–10+ employees
+•	local shops, small ICT, small zorgpraktijken, small trades
+•	typical NL ranges often fall between €500k–€2M
+I stretched it to 400k–2.5M to reduce overlap and give enough diversity.
+Midsize firms (up to 250 employees):
+•	distribution companies
+•	larger bouwbedrijven
+•	production firms
+•	consultancy groups
+CBS turnover for mid-size non-financial firms often falls between €2M–€15M but can easily go higher. I used 2.5M–20M to give a broad range, synthetic but realistic.
+Turnover (jaaromzet) is drawn from size-specific ranges:
+- micro: 80k–400k
+- klein: 400k–2.5M
+- midden: 2.5M–20M
+
+Formally:
+T | S = micro   ~ Uniform[80,000, 400,000]
+T | S = klein   ~ Uniform[400,000, 2,500,000]
+T | S = midden  ~ Uniform[2,500,000, 20,000,000].
+4. Sector, Branch and Region
+4.1 Sector Distribution
+Sectors are modelled as Dutch-style SBI head categories, e.g. Detailhandel, Horeca, Bouw, Landbouw & Visserij, Industrie, Vervoer & Logistiek, Informatie & ICT, etc. Each firm’s sector C is drawn from a categorical distribution with probabilities that roughly match the relative importance of these sectors in the Dutch SME population. For example, Zakelijke diensten and Detailhandel have higher weights than smaller groups such as Onderwijs & Overheid or Creatieve industrie.
+4.2 Detailed Branches (BUSINESS_TYPES)
+Within each sector, a more detailed business type B is drawn uniformly from a list of typical branches (e.g. Kebabzaak, Snack bar, Nagelsalon, Taxibedrijf). These are inspired by Dutch SBI subcategories, but expressed in plain Dutch labels for interpretability. Mathematically, for a given sector C = c, B is drawn from a uniform distribution over BUSINESS_TYPES[c].
+4.3 Region (REGIOS)
+Regions are coarse Dutch regions: Randstad, Noord, Oost, Zuid, Midden, with a heavier weight on Randstad. This reflects the higher firm density in the Randstad area. Region is sampled using a simple categorical distribution over these five regions.
+5. Legal Form and Tax Base
+5.1 Legal Forms
+Legal form (rechtsvorm) is drawn from four typical Dutch forms:
+- eenmanszaak
+- BV
+- VOF
+- maatschap
+
+with probabilities roughly reflecting the prevalence of sole proprietors and BV’s in the Dutch SME landscape.
+5.2 Profit Before Tax
+Profit before tax Π is calculated from turnover T using a sector-specific net margin m:
+Π = floor(T * m)
+
+The margin m is sampled from a Uniform[low, high] band that depends on the sector, e.g. Horeca might have a
+range of 2–8%, while ICT might have 10–25%. These bands are stylised approximations based on typical net margins reported in sector studies.
+5.3 Tax Due (Income Tax vs Corporate Tax)
+The function bereken_verschuldigde_belasting(winst, rechtsvorm) implements a simplified tax model:
+- Income-tax firms (eenmanszaak, VOF, maatschap): Tax ≈ 30% of profit Π.
+- BV (corporate tax): 19% over the first 200k of profit, 25% over the remainder.
+
+This reflects the basic shape of the Dutch system (two-tier corporate tax and effective income tax after reliefs), but it is not meant to be legally exact. It serves as a stable tax base for modelling.
+6. Digitalisation, Fiscal Advisor and Cash Intensity
+6.1 Digitalisation Level
+Digitalisation level D ∈ {laag, middel, hoog} is sampled per sector. ICT and business services have a higher probability of D = hoog, while sectors like Horeca, Bouw and Persoonlijke dienstverlening are more likely to be laag or middel. If no sector-specific bias is defined, an overall distribution of approximately 35% laag, 40% middel and 25% hoog is used.
+The CBS table clearly shows that digitalisation varies strongly by sector:
+1. ICT & Zakelijke diensten (business services)
+•	Significantly higher adoption of cloud services, remote access, VPN, multi-factor authentication, encrypted communication, supplier portals, and online administration.
+•	These sectors frequently show 50–80% adoption rate for major ICT indicators.
+This empirically supports: High probability of D = hoog.
+2. Horeca, Bouw, Landbouw, Persoonlijke dienstverlening
+•	Lower ICT adoption levels across almost every metric, e.g.:
+o	<20% cloud usage in many subgroups,
+o	<10–15% use of advanced cyber controls (risk scans, 2FA, monitoring),
+o	limited online administration.
+•	These sectors cluster in the bottom quantiles of ICT adoption in the CBS dataset.
+This supports: Higher probability of D = “laag” or “middel”, rarely “hoog”.
+3. Detailhandel, Zorg & Welzijn, Industrie, Transport & Logistiek
+•	Mid-range digitalisation profiles:
+o	some moderate cloud adoption (20–40%),
+o	medium-level cybersecurity uptake,
+o	strong variation by subsector.
+This supports: Balanced distribution among laag/middel/hoog, mostly in the central category.
+6.2 Fiscal Advisor
+The presence of a fiscal advisor F ∈ {ja, nee} is modelled as a probability that increases with firm size and digitalisation level. Larger and more digital firms are more likely to have a fiscal advisor, while very small and low-digital firms sometimes do not. The base probability is around 40%, with positive adjustments for klein/midden and high digitalisation.
+6.3 Cash Intensity
+Cash intensity K ∈ {ja, nee} indicates whether the firm is heavily cash-based. Certain branches such as Kebabzaak, Snackbar, Nagelsalon, Barbershop and Taxibedrijf are flagged as structurally cash-intensive and always get K = ja. Other branches in Horeca, Detailhandel and Persoonlijke dienstverlening get K = ja with a probability of about 0.6, while for all other sectors the default probability is 0.1.
+7. Prior Control
+Prior control probabilities (75% no control, 18% administrative control, 7% books audit) are based on public Belastingdienst annual reports (Belastingdienst, 2024), Parliamentary documents, Court of Audit analyses and academic literature showing that only a small minority of Dutch SMEs are ever audited, and that administrative checks are more common than full books audits but still cover a limited share of the population.
+Prior control H ∈ {geen, administratief, boekenonderzoek} represents historical interactions with the tax authority. It is sampled with roughly:
+- 75%: geen
+- 18%: administratief
+- 7%: boekenonderzoek
+
+The idea is that most SMEs have never been subject to a full books audit. In the risk model, prior controls slightly reduce the base risk, especially if a boekenonderzoek has already taken place.
+8. Core Risk Model
+8.1 Base Risk Score
+The base risk score R_base ∈ [0, 1] starts at 0.20 and is then adjusted based on:
+- sector risk (HIGHER_RISK_SECTORS adds +0.20) (OECD, sd),
+- branch risk (HIGHER_RISK_BUSINESSES adds +0.10) (OECD, sd),
+- size class (micro adds +0.10, midden subtracts 0.05) (statline cbs),
+- cash intensity (+0.10 if cash-intensive),
+- digitalisation (hoog: −0.10, laag: +0.05),
+- fiscal advisor (ja: −0.10, nee: +0.05),
+- prior controls (boekenonderzoek: −0.10, administratief: −0.03).
+
+After all adjustments, the score is clamped into [0.05, 0.90] and stored as historisch_risico_score. This is a smooth, continuous value that can be used as the starting risk in simulations.
+8.2 Error Probabilities
+Given R_base, we define probabilities for large, small and no errors:
+p_large = 0.4 * R_base
+p_small = 0.6 * R_base
+p_none  = 1 - (p_large + p_small)
+
+Because R_base is at most 0.90, p_large + p_small ≤ 0.90, so there is always at least 10% chance of no error. A random draw U1 ~ Uniform[0, 1] then decides whether the return is foutief_groot, foutief_klein or correct.
+8.3 Filing Timeliness
+Filing timeliness T_file ∈ {geen_aangifte, te_laat, op_tijd} is linked to R_base:
+P(geen_aangifte) = 0.25 * R_base
+P(te_laat)       = 0.45 * R_base
+P(op_tijd)       = 1 - 0.70 * R_base
+
+Higher base risk therefore increases the chance of late filing or not filing at all.
+8.4 Payment Status
+Payment status P ∈ {niet_betaald, gedeeltelijk_betaald, volledig_betaald} depends on the combination of error type and timeliness:
+- Large error or no filing: higher probability of niet_betaald or gedeeltelijk_betaald.
+- Small error: mostly volledig_betaald with some partial/non-payment.
+- Correct return: almost always volledig_betaald, with a small chance of gedeeltelijk_betaald.
+
+This creates a clear behavioural gradient: more serious errors and poor filing behaviour are strongly associated with non-payment or partial payment.
+9. Final Risk Category
+The final risk score R_final starts from the historical risk score R_hist and adds increments based on behaviour:
+- +0.30 for a large error (foutief_groot)
+- +0.15 for a small error (foutief_klein)
+- +0.30 for niet_betaald
+- +0.15 for gedeeltelijk_betaald
+- +0.25 for geen_aangifte
+- +0.10 for te_laat
+
+The resulting score is clamped to [0, 1] and then mapped to three risk bands:
+- R_final < 0.35 → risicocategorie = laag
+- 0.35 ≤ R_final < 0.70 → risicocategorie = middel
+- R_final ≥ 0.70 → risicocategorie = hoog
+
+These thresholds are chosen to produce a mix of low, medium and high-risk firms and can be tuned if needed.
+10. Output Format
+Each synthetic firm is output as a single row with the following fields:
+- bedrijf_id
+- grootteklasse
+- aantal_werknemers
+- sector_sbi_hoofdcategorie
+- branche_detail
+- regio
+- rechtsvorm
+- jaaromzet
+- winst_voor_belasting
+- verschuldigde_belasting
+- belasting_betaald_status
+- aangifte_juisteid
+- aangifte_tijdigheid
+- risicocategorie
+- digitaliseringsniveau
+- heeft_fiscaal_adviseur
+- contant_intensief
+- eerdere_controle
+- historisch_risico_score
+
+The script writes these rows to a semicolon-separated CSV file (synthetic_mkb_belasting_nl_representatief.csv), which can be imported into Python, R, Mesa, or BI tools.
+11. Limitations and Interpretation
+This dataset is entirely synthetic and stylised. It is designed to behave like a plausible Dutch SME population under tax supervision, but it is not derived from real taxpayer data and cannot be used for taxpayer-level inference.
+
+All probabilities and parameter values (sector shares, risk adjustments, margin bands, etc.) are informed by public knowledge about Dutch SMEs and tax practice, but are ultimately chosen to make the model usable, transparent and interpretable. The tax model is a compressed approximation of the Dutch system, without all allowances, deductions and boxes.
+
+For simulation and AI work, the dataset should be interpreted as a sandbox: it reflects many real-world patterns, but no single row corresponds to a real firm or a real taxpayer.
+Bibliografie
+Anon., 2016. micro-small-and-medium-sized-enterprises-definition-and-scope. [Online] 
+Available at: https://eur-lex.europa.eu/EN/legal-content/summary/micro-small-and-medium-sized-enterprises-definition-and-scope.html
+Belastingdienst, 2024. [Online] 
+Available at: https://open.overheid.nl/documenten/25dc5c7d-ee35-4e0d-8a44-b316b3e105a9/file
+[Geopend 27 11 2025].
+OECD, sd tax-administration. [Online] 
+Available at: https://www.oecd.org/en/topics/tax-administration.html
+[Geopend 27 11 2025].
+
+
