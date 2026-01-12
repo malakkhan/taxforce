@@ -1,0 +1,4 @@
+mesa
+mesa-viz-tornado
+numpy
+matplotlib
