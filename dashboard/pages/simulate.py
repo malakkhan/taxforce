@@ -34,92 +34,162 @@ def render():
         with st.expander("Scenario Settings", expanded=True):
             st.caption("Core parameters that control simulation scale and precision")
             
-            # Population Size
+            # Initialize session state for synced values
+            if "pop_value" not in st.session_state:
+                st.session_state.pop_value = 1000
+            if "dur_value" not in st.session_state:
+                st.session_state.dur_value = 50
+            if "run_value" not in st.session_state:
+                st.session_state.run_value = 3
+            
+            # Callback functions to sync values
+            def sync_pop_from_slider():
+                st.session_state.pop_value = st.session_state.pop_slider
+            
+            def sync_pop_from_input():
+                st.session_state.pop_value = st.session_state.pop_input
+            
+            def sync_dur_from_slider():
+                st.session_state.dur_value = st.session_state.dur_slider
+            
+            def sync_dur_from_input():
+                st.session_state.dur_value = st.session_state.dur_input
+            
+            def sync_run_from_slider():
+                st.session_state.run_value = st.session_state.run_slider
+            
+            def sync_run_from_input():
+                st.session_state.run_value = st.session_state.run_input
+            
+            # --- Population Size ---
             st.markdown("**Population Size** — Number of synthetic taxpayers")
-            n_agents = st.slider(
-                "Population",
-                min_value=500,
-                max_value=2500,
-                value=1000,
-                step=100,
-                key="sl_pop",
-                help="Larger populations produce smoother results but take longer"
-            )
+            col_pop_sl, col_pop_in = st.columns([4, 1])
+            with col_pop_sl:
+                st.slider(
+                    "Population Slider",
+                    min_value=500,
+                    max_value=2500,
+                    value=st.session_state.pop_value,
+                    step=50,
+                    key="pop_slider",
+                    label_visibility="collapsed",
+                    on_change=sync_pop_from_slider
+                )
+            with col_pop_in:
+                st.number_input(
+                    "Pop",
+                    min_value=500,
+                    max_value=2500,
+                    value=st.session_state.pop_value,
+                    step=50,
+                    key="pop_input",
+                    label_visibility="collapsed",
+                    on_change=sync_pop_from_input
+                )
+            n_agents = st.session_state.pop_value
             
             st.write("")
             
-            # Simulation Duration
-            st.markdown("**Simulation Duration** — Number of time periods")
-            n_steps = st.slider(
-                "Duration",
-                min_value=10,
-                max_value=100,
-                value=50,
-                step=5,
-                key="sl_steps",
-                help="Each period represents one fiscal year"
-            )
+            # --- Simulation Duration ---
+            st.markdown("**Simulation Duration** — Number of time periods (years)")
+            col_dur_sl, col_dur_in = st.columns([4, 1])
+            with col_dur_sl:
+                st.slider(
+                    "Duration Slider",
+                    min_value=10,
+                    max_value=100,
+                    value=st.session_state.dur_value,
+                    step=5,
+                    key="dur_slider",
+                    label_visibility="collapsed",
+                    on_change=sync_dur_from_slider
+                )
+            with col_dur_in:
+                st.number_input(
+                    "Dur",
+                    min_value=10,
+                    max_value=100,
+                    value=st.session_state.dur_value,
+                    step=5,
+                    key="dur_input",
+                    label_visibility="collapsed",
+                    on_change=sync_dur_from_input
+                )
+            n_steps = st.session_state.dur_value
             
             st.write("")
             
-            # Result Precision (Monte Carlo runs)
+            # --- Result Precision ---
             st.markdown("**Result Precision** — Monte Carlo repetitions")
-            n_runs = st.slider(
-                "Runs",
-                min_value=1,
-                max_value=10,
-                value=3,
-                step=1,
-                key="sl_runs",
-                help="More runs give more reliable results but take longer"
-            )
+            col_run_sl, col_run_in = st.columns([4, 1])
+            with col_run_sl:
+                st.slider(
+                    "Runs Slider",
+                    min_value=1,
+                    max_value=10,
+                    value=st.session_state.run_value,
+                    step=1,
+                    key="run_slider",
+                    label_visibility="collapsed",
+                    on_change=sync_run_from_slider
+                )
+            with col_run_in:
+                st.number_input(
+                    "Runs",
+                    min_value=1,
+                    max_value=10,
+                    value=st.session_state.run_value,
+                    step=1,
+                    key="run_input",
+                    label_visibility="collapsed",
+                    on_change=sync_run_from_input
+                )
+            n_runs = st.session_state.run_value
         
         # --- Tax Policy ---
         with st.expander("Tax Policy", expanded=True):
             st.caption("Configure tax rates and penalties applied to taxpayers")
             
-            # Tax Rate
-            st.markdown("**Tax Rate** — Marginal rate applied to income")
-            tax_rate = st.slider(
-                "Tax Rate",
-                min_value=0.15,
-                max_value=0.55,
-                value=0.30,
-                step=0.01,
-                format="%.0f%%",
-                key="sl_tax",
-                help="Taxpayers pay this percentage of declared income"
-            )
+            col_t1, col_t2, col_t3 = st.columns(3)
             
-            st.write("")
+            with col_t1:
+                # Tax Rate - select_slider for common values
+                st.markdown("**Tax Rate**")
+                tax_rate = st.select_slider(
+                    "Tax Rate",
+                    options=[0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55],
+                    value=0.30,
+                    format_func=lambda x: f"{int(x*100)}%",
+                    key="sl_tax",
+                    label_visibility="collapsed"
+                )
+                st.caption("Marginal income rate")
             
-            # Penalty Multiplier
-            st.markdown("**Penalty Multiplier** — Fine for caught evaders")
-            penalty_rate = st.slider(
-                "Penalty",
-                min_value=1.0,
-                max_value=5.0,
-                value=3.0,
-                step=0.25,
-                format="%.1fx",
-                key="sl_penalty",
-                help="Caught evaders pay this times the evaded tax amount"
-            )
+            with col_t2:
+                # Penalty - select_slider
+                st.markdown("**Penalty**")
+                penalty_rate = st.select_slider(
+                    "Penalty",
+                    options=[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
+                    value=3.0,
+                    format_func=lambda x: f"{x:.1f}×",
+                    key="sl_penalty",
+                    label_visibility="collapsed"
+                )
+                st.caption("Fine multiplier")
             
-            st.write("")
-            
-            # Compliance Rate
-            st.markdown("**Baseline Compliance** — Honest taxpayer ratio")
-            honest_ratio = st.slider(
-                "Compliance",
-                min_value=0.80,
-                max_value=0.99,
-                value=0.921,
-                step=0.01,
-                format="%.1f%%",
-                key="sl_honest",
-                help="Based on Dutch Belastingdienst data: ~92% comply"
-            )
+            with col_t3:
+                # Compliance - select_slider
+                st.markdown("**Compliance**")
+                honest_ratio = st.select_slider(
+                    "Compliance",
+                    options=[0.80, 0.85, 0.90, 0.92, 0.95, 0.97, 0.99],
+                    value=0.92,
+                    format_func=lambda x: f"{int(x*100)}%",
+                    key="sl_honest",
+                    label_visibility="collapsed"
+                )
+                st.caption("Honest taxpayer ratio")
         
         # --- Enforcement Strategy ---
         with st.expander("Enforcement Strategy", expanded=True):
