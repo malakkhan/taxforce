@@ -1,0 +1,430 @@
+/* TaxForce Dashboard - Professional Design System */
+
+:root {
+    --primary: #01689B;
+    --primary-dark: #01689B;
+    --primary-light: #90C9E6;
+    --background: #E8F3F8;
+    --surface: #FFFFFF;
+    --text-dark: #1A1A1A;
+    --text-medium: #4A5568;
+    --text-light: #718096;
+    --border: #D1D9E0;
+    --success: #059669;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* ===== GLOBAL RESETS ===== */
+.stApp {
+    background-color: var(--background) !important;
+}
+
+/* Hide hamburger menu and dev tools completely */
+#MainMenu {
+    visibility: hidden !important;
+}
+
+footer {
+    visibility: hidden !important;
+}
+
+header {
+    visibility: hidden !important;
+}
+
+[data-testid="stSidebar"] {
+    display: none !important;
+}
+
+[data-testid="stSidebarNav"] {
+    display: none !important;
+}
+
+.stDeployButton {
+    display: none !important;
+}
+
+[data-testid="stToolbar"] {
+    display: none !important;
+}
+
+/* Main container - REMOVE ALL PADDING for edge-to-edge header */
+.main .block-container {
+    padding: 0 !important;
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+}
+
+/* Also target the data-testid version */
+[data-testid="stAppViewBlockContainer"] {
+    padding: 0 !important;
+    padding-top: 0 !important;
+    max-width: 100% !important;
+}
+
+/* Remove any margins on main app container */
+.stApp>div>div>div>div {
+    padding: 0 !important;
+}
+
+section[data-testid="stMain"] {
+    padding: 0 !important;
+}
+
+section[data-testid="stMain"]>div {
+    padding: 0 !important;
+}
+
+/* ===== BACK BUTTON ===== */
+/* Style the back button at top of non-home pages */
+button[id*="back_home"] {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-medium) !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+}
+
+button[id*="back_home"]:hover {
+    background: var(--surface) !important;
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+}
+
+/* Default content padding - layout handled by st.columns in Python */
+.main .block-container {
+    padding: 24px 32px !important;
+}
+
+[data-testid="stAppViewBlockContainer"] {
+    padding: 24px 32px !important;
+}
+
+/* ===== NATIVE CONTAINER CARDS ===== */
+[data-testid="stVerticalBlock"]>[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: white !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow) !important;
+    overflow: hidden;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"]>div {
+    padding: 24px !important;
+}
+
+/* ===== KPI CARDS ===== */
+.kpi-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 8px 0;
+}
+
+.kpi-label {
+    font-size: 13px;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-change {
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.kpi-change.positive {
+    color: var(--success);
+}
+
+.kpi-change.negative {
+    color: var(--danger);
+}
+
+/* ===== BUTTONS ===== */
+.stButton>button {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    border-radius: 10px !important;
+    padding: 12px 24px !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+}
+
+.stButton>button[kind="primary"],
+.stButton>button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(1, 104, 155, 0.3) !important;
+}
+
+.stButton>button[kind="primary"]:hover,
+.stButton>button[data-testid="baseButton-primary"]:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(1, 104, 155, 0.4) !important;
+}
+
+.stButton>button[kind="secondary"],
+.stButton>button[data-testid="baseButton-secondary"] {
+    background: white !important;
+    color: var(--text-dark) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.stButton>button[kind="secondary"]:hover,
+.stButton>button[data-testid="baseButton-secondary"]:hover {
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+    background: #f0f7fa !important;
+}
+
+/* ===== MODERN SLIDERS ===== */
+.stSlider {
+    padding: 8px 0 !important;
+}
+
+.stSlider [data-testid="stThumbValue"] {
+    background: var(--primary) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    padding: 4px 10px !important;
+    border-radius: 20px !important;
+    top: -36px !important;
+}
+
+.stSlider [data-testid="stTickBarMin"],
+.stSlider [data-testid="stTickBarMax"] {
+    color: var(--text-light) !important;
+    font-size: 12px !important;
+}
+
+/* Slider track */
+div[data-baseweb="slider"]>div:first-child {
+    background: linear-gradient(to right, var(--border), var(--border)) !important;
+    height: 8px !important;
+    border-radius: 4px !important;
+}
+
+/* Slider filled track */
+div[data-baseweb="slider"]>div>div:first-child {
+    background: linear-gradient(90deg, var(--primary), var(--primary-light)) !important;
+    border-radius: 4px !important;
+}
+
+/* Slider thumb */
+div[data-baseweb="slider"] div[role="slider"] {
+    width: 22px !important;
+    height: 22px !important;
+    background: white !important;
+    border: 3px solid var(--primary) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    top: -7px !important;
+    transition: transform 0.15s, box-shadow 0.15s !important;
+}
+
+div[data-baseweb="slider"] div[role="slider"]:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ===== SELECT BOX ===== */
+.stSelectbox>div>div {
+    background: white !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    padding: 4px 8px !important;
+}
+
+.stSelectbox>div>div:hover {
+    border-color: var(--primary) !important;
+}
+
+/* ===== EXPANDER ===== */
+div[data-testid="stExpander"] {
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: white !important;
+    overflow: hidden !important;
+    margin-bottom: 12px !important;
+}
+
+.streamlit-expanderHeader {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--text-dark) !important;
+    padding: 16px 20px !important;
+    background: #f8fafc !important;
+}
+
+.streamlit-expanderHeader:hover {
+    background: #f0f4f7 !important;
+}
+
+div[data-testid="stExpander"]>div:last-child {
+    padding: 20px !important;
+}
+
+/* ===== RADIO BUTTONS ===== */
+.stRadio>div {
+    gap: 8px !important;
+}
+
+.stRadio label {
+    background: white !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+    transition: all 0.15s !important;
+}
+
+.stRadio label:hover {
+    border-color: var(--primary) !important;
+    background: #f0f7fa !important;
+}
+
+.stRadio label[data-checked="true"],
+.stRadio div[data-checked="true"]+label {
+    background: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}
+
+/* ===== PROGRESS BAR ===== */
+.stProgress>div>div>div {
+    background: linear-gradient(90deg, var(--primary), var(--primary-light)) !important;
+    border-radius: 8px !important;
+}
+
+.stProgress>div>div {
+    background: var(--border) !important;
+    border-radius: 8px !important;
+    height: 12px !important;
+}
+
+/* ===== METRICS ===== */
+[data-testid="stMetricValue"] {
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    color: var(--primary) !important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 12px !important;
+    color: var(--text-light) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-testid="stMetricDelta"] {
+    font-size: 13px !important;
+}
+
+/* ===== SECTION STYLING ===== */
+.section-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+.section-desc {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 20px;
+}
+
+/* ===== CHART CONTAINERS ===== */
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+
+.chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 16px;
+}
+
+/* ===== HOME PAGE CARDS ===== */
+.home-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px 32px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.home-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.home-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px auto;
+}
+
+.home-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+.home-desc {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 24px;
+}
+
+/* ===== DIVIDER ===== */
+hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+}
