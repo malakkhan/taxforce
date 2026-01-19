@@ -8,8 +8,8 @@
                 "max": 5
             },
             "subjective_audit_prob": {
-                "mean": 20,
-                "std": 15,
+                "mean": 60.75,
+                "std": 22.0,
                 "min": 0,
                 "max": 100
             },
@@ -52,8 +52,8 @@
                 "max": 5
             },
             "subjective_audit_prob": {
-                "mean": 22,
-                "std": 15.0,
+                "mean": 63.50,
+                "std": 23.0,
                 "min": 0,
                 "max": 100
             },

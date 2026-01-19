@@ -32,12 +32,15 @@ class TaxComplianceModel(mesa.Model):
 
         self.current_step = 0
         self.audited_this_step: set[int] = set()
+        self.total_audits = 0  # Track cumulative audits
 
         self.datacollector = mesa.DataCollector(
             model_reporters={
                 "Tax_Gap": lambda m: m.calc_tax_gap(),
                 "Compliance_Rate": lambda m: m.calc_compliance_rate(),
                 "Total_Taxes": lambda m: m.calc_total_taxes(),
+                "Audits": lambda m: len(m.audited_this_step),
+                "Avg_Declaration_Ratio": lambda m: m.calc_avg_declaration_ratio(),
             }
         )
 
@@ -146,6 +149,14 @@ class TaxComplianceModel(mesa.Model):
 
     def calc_total_taxes(self):
         return sum(a.declared_income * self.tax_rate for a in self.agents)
+
+    def calc_avg_declaration_ratio(self):
+        """Calculate average declaration ratio (declared/true income)."""
+        agents = list(self.agents)
+        if not agents:
+            return 1.0
+        ratios = [min(a.declared_income / max(a.true_income, 1), 1.0) for a in agents]
+        return sum(ratios) / len(agents)
 
     def run(self, steps: int = None):
         n = steps or self.n_steps

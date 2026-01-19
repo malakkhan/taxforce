@@ -223,6 +223,24 @@ button[id*="back_home"]:hover {
 /* ===== SLIDER STYLING - FIGMA STYLE ===== */
 /* Thick rounded slider matching Figma prototype */
 
+/* Reduce vertical spacing around sliders */
+[data-baseweb="slider"] {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: -8px !important;
+    margin-bottom: -15px !important;
+}
+
+/* Reduce spacing around slider container elements */
+[data-testid="stSlider"] {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+[data-testid="stSlider"]>div {
+    margin-bottom: 0 !important;
+}
+
 /* Track container - the div that holds the gradient */
 [data-baseweb="slider"]>div>div {
     height: 20px !important;
@@ -255,34 +273,43 @@ button[id*="back_home"]:hover {
 [data-testid="stNumberInput"] {
     display: flex !important;
     align-items: flex-end !important;
-    padding-bottom: 24px !important;
+    padding-bottom: 14px !important;
 }
 
-/* Number input styling - add visible border */
+/* ===== MODERN NUMBER INPUT STYLING ===== */
+/* Clean, minimal number input with subtle border and teal accent */
 [data-testid="stNumberInput"] input {
-    border: 2px solid #CBD5E1 !important;
-    border-radius: 8px !important;
-    padding: 8px 12px !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 10px !important;
+    padding: 8px 14px !important;
     font-size: 14px !important;
+    font-weight: 500 !important;
     text-align: center !important;
-    background: #f8fafc !important;
+    background: #FAFBFC !important;
+    transition: all 0.2s ease !important;
+    min-width: 65px !important;
+}
+
+[data-testid="stNumberInput"] input:hover {
+    border-color: #CBD5E1 !important;
+    background: white !important;
 }
 
 [data-testid="stNumberInput"] input:focus {
-    border-color: var(--primary) !important;
+    border-color: #0A7EA4 !important;
+    box-shadow: 0 0 0 3px rgba(10, 126, 164, 0.15), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
     outline: none !important;
 }
 
-/* Style the +/- buttons */
+/* Hide the +/- buttons for cleaner look */
 [data-testid="stNumberInput"] button {
-    border: 2px solid #CBD5E1 !important;
-    border-radius: 6px !important;
-    background: #f8fafc !important;
+    display: none !important;
 }
 
-[data-testid="stNumberInput"] button:hover {
-    border-color: var(--primary) !important;
-    background: #f8fafc !important;
+/* Compact standalone number inputs (without sliders) */
+[data-testid="stHorizontalBlock"] [data-testid="stNumberInput"] {
+    padding-bottom: 0 !important;
+    margin-bottom: -20px !important;
 }
 
 /* ===== SELECT BOX ===== */

@@ -5,12 +5,12 @@
             "mu": 0.7,
             "drift": {
                 "private": {
-                    "mean": 20.0,
-                    "step": 1.5
+                    "mean": 60.75,
+                    "step": 2.2
                 },
                 "business": {
-                    "mean": 22.0,
-                    "step": 1.5
+                    "mean": 63.50,
+                    "step": 2.3
                 }
             }
         }
