@@ -167,7 +167,7 @@ def render():
                     on_change=sync_pop_from_input
                 )
             n_agents = st.session_state.pop_value
-            
+             
             # --- Simulation Duration ---
             st.markdown("**Simulation Duration** · Number of steps (years)")
             dur_min, dur_max = 10, 100
