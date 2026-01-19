@@ -141,7 +141,7 @@ def render():
                 st.session_state.run_value = st.session_state.run_input
             
             # --- Population Size ---
-            st.markdown("**Population Size** — Number of synthetic taxpayers")
+            st.markdown("**Population Size** · Number of agents")
             pop_min, pop_max = 500, 2500
             col_pop_sl, col_pop_in = st.columns([4, 1])
             with col_pop_sl:
@@ -169,7 +169,7 @@ def render():
             n_agents = st.session_state.pop_value
             
             # --- Simulation Duration ---
-            st.markdown("**Simulation Duration** — Number of time periods (years)")
+            st.markdown("**Simulation Duration** · Number of steps (years)")
             dur_min, dur_max = 10, 100
             col_dur_sl, col_dur_in = st.columns([4, 1])
             with col_dur_sl:
@@ -197,7 +197,7 @@ def render():
             n_steps = st.session_state.dur_value
             
             # --- Result Precision ---
-            st.markdown("**Result Precision** — Monte Carlo repetitions")
+            st.markdown("**Repetitions - Number of simulations to run**")
             run_min, run_max = 1, 10
             col_run_sl, col_run_in = st.columns([4, 1])
             with col_run_sl:
@@ -251,7 +251,7 @@ def render():
                 st.session_state.compliance_value = st.session_state.compliance_input
             
             # --- Tax Rate ---
-            st.markdown("**Tax Rate** — Marginal income rate (%)")
+            st.markdown("**Tax Rate** · Income rate (%)")
             tax_min, tax_max = 10, 60
             col_tax_sl, col_tax_in = st.columns([4, 1])
             with col_tax_sl:
@@ -279,7 +279,7 @@ def render():
             tax_rate = st.session_state.tax_rate_value / 100.0
             
             # --- Penalty Rate ---
-            st.markdown("**Penalty** — Fine multiplier (×)")
+            st.markdown("**Penalty** · Fine multiplier (x)")
             pen_min, pen_max = 1.0, 5.0
             col_pen_sl, col_pen_in = st.columns([4, 1])
             with col_pen_sl:
@@ -307,7 +307,7 @@ def render():
             penalty_rate = st.session_state.penalty_value
             
             # --- Compliance ---
-            st.markdown("**Compliance** — Honest taxpayer ratio (%)")
+            st.markdown("**Compliance** · Honest taxpayers (%)")
             comp_min, comp_max = 0, 100
             col_hon_sl, col_hon_in = st.columns([4, 1])
             with col_hon_sl:
@@ -344,9 +344,9 @@ def render():
                 "Strategy",
                 options=["random", "risk_based", "network"],
                 format_func=lambda x: {
-                    "random": "Random — Uniform probability for all taxpayers",
-                    "risk_based": "Risk-Based — Focus on high-risk profiles",
-                    "network": "Network — Target based on social connections"
+                    "random": "Random · Uniform probability for all taxpayers",
+                    "risk_based": "Risk-Based · Focus on high-risk profiles",
+                    "network": "Network · Target based on social connections"
                 }.get(x, x),
                 key="sel_audit",
                 label_visibility="collapsed"
@@ -371,7 +371,7 @@ def render():
                 st.session_state.biz_audit_value = st.session_state.biz_audit_input
             
             # --- Private Audit Rate ---
-            st.markdown("**Private Audit Rate** — Individual taxpayer audit probability (%)")
+            st.markdown("**Private Audit Rate** · Individual taxpayer audit probability (%)")
             priv_min, priv_max = 0.0, 10.0
             col_priv_sl, col_priv_in = st.columns([4, 1])
             with col_priv_sl:
@@ -400,7 +400,7 @@ def render():
             audit_private = st.session_state.priv_audit_value / 100.0
             
             # --- Business Audit Rate ---
-            st.markdown("**Business Audit Rate** — SME/Corporate audit probability (%)")
+            st.markdown("**Business Audit Rate** · SME audit probability (%)")
             biz_min, biz_max = 0.0, 5.0
             col_biz_sl, col_biz_in = st.columns([4, 1])
             with col_biz_sl:
@@ -551,7 +551,7 @@ def render():
             def sync_biz_ratio_from_input():
                 st.session_state.biz_ratio_value = st.session_state.biz_ratio_input
             
-            st.markdown("**Business/SME Ratio** — Percentage of business taxpayers (%)")
+            st.markdown("**Private/SME Ratio** · Percentage of SMEs (%)")
             col_biz_sl, col_biz_in = st.columns([4, 1])
             with col_biz_sl:
                 st.slider(

@@ -108,9 +108,9 @@ def render():
     with kpi2:
         st.markdown(f"""
             <div class="kpi-card">
-                <div class="kpi-label">Tax Gap</div>
-                <div class="kpi-value">{format_number(results.get('tax_gap', 0))}</div>
-                <div class="kpi-change negative">Uncollected</div>
+                <div class="kpi-label">Total Tax Gap</div>
+                <div class="kpi-value">{format_number(results.get('total_tax_gap', 0))}</div>
+                <div class="kpi-change negative">Cumulative uncollected</div>
             </div>
         """, unsafe_allow_html=True)
     

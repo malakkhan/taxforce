@@ -61,7 +61,7 @@ class BaseAgent(mesa.Agent):
     
     @property
     def is_compliant(self):
-        return self.declared_income >= self.true_income
+        return self.declared_income >= self.true_income - 0.01 # small tolerance for floating point issues
     
     @sim_cache
     def get_evasion_rate(self):

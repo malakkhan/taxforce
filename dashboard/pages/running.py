@@ -228,7 +228,8 @@ def run_simulation(params: dict, progress_callback=None):
         "taxes_over_time": avg_taxes,
         "declaration_ratio_over_time": avg_declaration_ratio,
         "total_taxes": int(np.mean([sum(t) for t in all_taxes])),
-        "tax_gap": float(np.mean([tg[-1] for tg in all_tax_gap])),
+        "total_tax_gap": int(np.mean([sum(tg) for tg in all_tax_gap])),  # Cumulative gap
+        "final_tax_gap": float(np.mean([tg[-1] for tg in all_tax_gap])),  # Final year only
         "final_compliance": float(avg_compliance[-1]) if avg_compliance else 0.0,
         "initial_compliance": float(avg_compliance[0]) if avg_compliance else 0.0,
         "max_compliance": float(max(avg_compliance)) if avg_compliance else 0.0,
