@@ -32,7 +32,8 @@ class TaxComplianceModel(mesa.Model):
 
         self.current_step = 0
         self.audited_this_step: set[int] = set()
-        self.total_audits = 0  # Track cumulative audits
+        self.total_audits = 0  
+        self.penalties_this_step = 0  
 
         self.datacollector = mesa.DataCollector(
             model_reporters={
@@ -41,6 +42,11 @@ class TaxComplianceModel(mesa.Model):
                 "Total_Taxes": lambda m: m.calc_total_taxes(),
                 "Audits": lambda m: len(m.audited_this_step),
                 "Avg_Declaration_Ratio": lambda m: m.calc_avg_declaration_ratio(),
+                "Tax_Morale": lambda m: m.calc_tax_morale(),
+                "Avg_FOUR": lambda m: m.calc_avg_four(),
+                "Avg_PSO": lambda m: m.calc_avg_pso(),
+                "MGTR": lambda m: m.calc_mgtr(),
+                "Penalties": lambda m: m.penalties_this_step,
             }
         )
 
@@ -81,9 +87,15 @@ class TaxComplianceModel(mesa.Model):
         selected.extend(self.audit_strategy.select(business, rates["business"]))
         
         self.audited_this_step = {a.unique_id for a in selected}
+        self.penalties_this_step = 0 
 
         for agent in selected:
             was_compliant = agent.is_compliant
+            
+            if not was_compliant:
+                evaded_tax = agent.evaded_income * self.tax_rate
+                self.penalties_this_step += evaded_tax * self.penalty_rate
+            
             self.belief_strategy.update(
                 agent,
                 was_audited=True,
@@ -151,12 +163,51 @@ class TaxComplianceModel(mesa.Model):
         return sum(a.declared_income * self.tax_rate for a in self.agents)
 
     def calc_avg_declaration_ratio(self):
-        """Calculate average declaration ratio (declared/true income)."""
         agents = list(self.agents)
         if not agents:
             return 1.0
         ratios = [min(a.declared_income / max(a.true_income, 1), 1.0) for a in agents]
         return sum(ratios) / len(agents)
+
+    def calc_tax_morale(self):
+        agents = list(self.agents)
+        if not agents: return 0.0
+        
+        total = 0.0
+        for agent in agents:
+            t = agent.traits
+            norm = lambda val: (val - 1) / 4
+            
+            # Weighted combination (weights from Gangl coefficients)
+            morale = (
+                0.18 * norm(t.social_norms) +   
+                0.23 * norm(t.societal_norms) +  
+                0.27 * norm(t.perceived_service_orientation) + 
+                0.32 * norm(t.perceived_trustworthiness)     
+            )
+            total += morale
+        
+        return (total / len(agents)) * 100
+
+    def calc_avg_four(self):
+        rates = []
+        for a in self.agents:
+            if a.behavior_type != "honest":
+                opportunity = a.calculate_opportunity()
+                if opportunity > 0:
+                    rates.append(a.get_evasion_rate())
+        return sum(rates) / len(rates) if rates else 0.0
+
+    def calc_avg_pso(self):
+        agents = list(self.agents)
+        if not agents: return 0.0
+        return sum(a.traits.perceived_service_orientation for a in agents) / len(agents)
+
+    def calc_mgtr(self):
+        total_true = sum(a.true_income for a in self.agents)
+        if total_true <= 0: return 0.0
+        revenue = sum(a.declared_income * self.tax_rate for a in self.agents)
+        return (revenue + self.penalties_this_step) / total_true
 
     def run(self, steps: int = None):
         n = steps or self.n_steps

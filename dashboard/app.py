@@ -1,7 +1,3 @@
-"""
-TaxForce Dashboard - Main Entry Point
-A Streamlit-based tax compliance simulation dashboard.
-"""
 import streamlit as st
 from pathlib import Path
 
@@ -13,13 +9,25 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Load custom CSS
-def load_css():
-    css_path = Path(__file__).parent / "styles" / "main.css"
-    if css_path.exists():
-        with open(css_path) as f:
+# Load custom CSS - modular approach
+def load_css(page_name: str = None):
+    """Load base CSS and optional page-specific CSS."""
+    styles_dir = Path(__file__).parent / "styles"
+    
+    # Always load main.css as base
+    main_css = styles_dir / "main.css"
+    if main_css.exists():
+        with open(main_css) as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    
+    # Load page-specific CSS if it exists
+    if page_name:
+        page_css = styles_dir / f"{page_name}.css"
+        if page_css.exists():
+            with open(page_css) as f:
+                st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+# Load base CSS at startup
 load_css()
 
 # Initialize session state
@@ -31,7 +39,7 @@ if "current_page" not in st.session_state:
     st.session_state.current_page = "home"
 
 # Import pages
-from pages import home, simulate, running, results, history
+from pages import home, simulate, running, results, history, comparison
 
 # Page routing
 PAGES = {
@@ -40,22 +48,40 @@ PAGES = {
     "running": running,
     "results": results,
     "history": history,
+    "comparison": comparison,
 }
 
 def render_back_button():
-    """Render a back button on non-home pages."""
-    if st.session_state.current_page != "home":
+    current_page = st.session_state.current_page
+    
+    if current_page == "home":
+        return  # No back button on home page
+    
+    # Page-specific column ratios to match content alignment
+    if current_page == "simulate":
+        # simulate.py uses [1, 4, 1]
+        left_spacer, btn_col, right_spacer = st.columns([1, 4, 1])
+    elif current_page == "running":
+        # running page - centered, no back button needed during simulation
+        return
+    else:
+        # history, results, comparison all use [0.15, 8, 0.15]
+        left_spacer, btn_col, right_spacer = st.columns([0.15, 8, 0.15])
+    
+    with btn_col:
         if st.button("← Back to Home", key="back_home"):
             st.session_state.current_page = "home"
             st.rerun()
-        st.write("")  # Small spacer
+        st.write("")
 
 def main():
-    # Show back button on non-home pages
     render_back_button()
     
-    # Page content  
     current_page = st.session_state.current_page
+    
+    # Load page-specific CSS if it exists
+    load_css(current_page)
+    
     if current_page in PAGES:
         PAGES[current_page].render()
     else:

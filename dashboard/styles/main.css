@@ -112,7 +112,7 @@ button[id*="back_home"]:hover {
     border: 1px solid var(--border) !important;
     border-radius: 16px !important;
     box-shadow: var(--shadow) !important;
-    overflow: hidden;
+    overflow: auto;
 }
 
 [data-testid="stVerticalBlockBorderWrapper"]>div {

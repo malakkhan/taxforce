@@ -25,6 +25,23 @@ def normative_filter(agent, max_concealable: float):
     willingness_to_hide = max_concealable * (1 - tax_compliance_intention)
     return willingness_to_hide
 
+def social_influence_filter(agent, willingness: float, max_concealable: float):
+    if max_concealable <= 0: return 0.0
+    
+    own_rate = willingness / max_concealable
+    
+    if not agent.neighbors: return willingness
+    
+    neighbor_rates = [n.get_evasion_rate() for n in agent.neighbors if n.true_income > 0]
+    if not neighbor_rates: return willingness
+    
+    omega = agent.model.social_influence
+    median_rate = median(neighbor_rates)
+    
+    adjusted_rate = (1 - omega) * own_rate + omega * median_rate
+    adjusted_rate = clip(adjusted_rate, 0.0, 1.0)
+    
+    return adjusted_rate * max_concealable
 
 def rational_choice_filter(agent, willingness: float) -> float:
     if willingness <= 0.0: return 0.0
@@ -36,10 +53,9 @@ def rational_choice_filter(agent, willingness: float) -> float:
     if p >= 1.0: return 0.0
     if p <= 0.0: return willingness
 
-    threshold = 1.0 / (1.0 + f) # ASY
+    threshold = 1.0 / (1.0 + f)  # ASY threshold
     if p >= threshold: return 0.0
 
-    # Evade based on risk aversion of the agent    
     margin = (threshold - p) / threshold
     rho_normalized = (rho - 0.5) / 4.5
     risk_dampening = 1.0 - (0.8 * rho_normalized)
@@ -49,26 +65,5 @@ def rational_choice_filter(agent, willingness: float) -> float:
     return evasion_rate * willingness
 
 
-def social_influence_filter(agent, provisional_evasion: float, max_concealable: float):
-    if max_concealable <= 0:
-        return 0.0
 
-    own_evasion_rate = provisional_evasion / max_concealable
 
-    if not agent.neighbors:
-        return provisional_evasion
-
-    # Use cached evasion rates
-    nbour_evasion_rates = [n.get_evasion_rate() for n in agent.neighbors if n.true_income > 0]
-
-    if not nbour_evasion_rates:
-        return provisional_evasion
-
-    omega = agent.model.social_influence
-    median_nbour_rate = median(nbour_evasion_rates)  # statistics.median for small lists
-    
-    adjusted_rate = own_evasion_rate + omega * (median_nbour_rate - own_evasion_rate)
-    final_rate = clip(adjusted_rate, 0.0, 1.0)
-
-    final_evasion = final_rate * max_concealable
-    return final_evasion

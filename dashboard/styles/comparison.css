@@ -1,0 +1,231 @@
+/* Comparison Page Specific CSS */
+/* This file contains overrides for the comparison page to undo aggressive main.css rules */
+
+/* ===== RESET AGGRESSIVE MAIN.CSS RULES FOR COMPARISON ===== */
+
+/* Reset container padding - main.css sets 24px which pushes content down */
+.comparison-page [data-testid="stVerticalBlockBorderWrapper"]>div {
+    padding: 16px !important;
+}
+
+/* Ensure containers don't clip content */
+.comparison-page [data-testid="stVerticalBlockBorderWrapper"] {
+    overflow: visible !important;
+}
+
+/* ===== BUTTON FIXES ===== */
+/* main.css uses padding: 12px 24px which is way too big for small buttons */
+.comparison-page .stButton>button {
+    padding: 6px 14px !important;
+    font-size: 13px !important;
+    min-height: auto !important;
+    white-space: nowrap !important;
+}
+
+/* Add/remove button styling */
+.comparison-page button[key^="a_"],
+.comparison-page button[key^="r_"] {
+    padding: 4px 10px !important;
+    min-width: 32px !important;
+}
+
+/* ===== SCROLLABLE CONTAINERS ===== */
+/* Fix the inner scrollable containers */
+.comparison-page [data-testid="stVerticalBlock"]>div[style*="height"] {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* ===== SELECTION PANEL ===== */
+.selection-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.selection-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1A1A1A;
+}
+
+.selection-subtitle {
+    font-size: 12px;
+    color: #718096;
+}
+
+.selected-count {
+    font-weight: 600;
+    color: #1A1A1A;
+    margin-bottom: 8px;
+}
+
+/* Run entry styling */
+.run-entry {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 2.2;
+}
+
+.run-entry.selected {
+    color: #01689B;
+    font-weight: 600;
+}
+
+.run-entry.unselected {
+    color: #718096;
+    font-weight: 400;
+}
+
+/* Chips/badges */
+.run-chip {
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 9px;
+    margin-left: 4px;
+}
+
+.run-chip.agents {
+    background: rgba(1, 104, 155, 0.15);
+    color: #01689B;
+}
+
+.run-chip.strategy {
+    background: rgba(5, 150, 105, 0.15);
+    color: #059669;
+}
+
+/* ===== CONFIG COMPARISON ===== */
+.config-header {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin-bottom: 16px;
+}
+
+.config-row-label {
+    font-size: 12px;
+    padding: 6px 0;
+}
+
+.config-row-label.normal {
+    color: #718096;
+}
+
+.config-row-label.differing {
+    font-weight: 700;
+    color: #1A1A1A;
+}
+
+.config-value {
+    text-align: center;
+    font-size: 12px;
+    padding: 6px 0;
+}
+
+.config-value.normal {
+    color: #4A5568;
+}
+
+.config-value.differing {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1A1A1A;
+    background: rgba(1, 104, 155, 0.12);
+    padding: 6px 8px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+.config-divider {
+    border-bottom: 1px solid #D1D9E0;
+    margin: 4px 0 8px 0;
+}
+
+.config-divider-subtle {
+    border-bottom: 1px solid #E8EEF2;
+    margin: 6px 0;
+}
+
+/* ===== METRICS COMPARISON ===== */
+.section-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A1A1A;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 24px 0 16px 0;
+}
+
+.run-header-card {
+    text-align: center;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.metric-card {
+    padding: 8px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+}
+
+.metric-card.normal {
+    background: white;
+    border: 1px solid #D1D9E0;
+}
+
+.metric-card.best {
+    background: rgba(5, 150, 105, 0.08);
+    border-left: 3px solid #059669;
+}
+
+.metric-label {
+    font-size: 9px;
+    color: #718096;
+    text-transform: uppercase;
+}
+
+.metric-value {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.metric-value.normal {
+    color: #1A1A1A;
+}
+
+.metric-value.best {
+    font-weight: 600;
+    color: #059669;
+}
+
+.metric-value.empty {
+    color: #A0AEC0;
+}
+
+/* ===== CHARTS ===== */
+.chart-container {
+    background: white;
+    border: 1px solid #D1D9E0;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin-bottom: 8px;
+}
+
+.chart-empty {
+    color: #718096;
+    font-size: 12px;
+    text-align: center;
+    padding: 40px 0;
+}

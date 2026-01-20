@@ -22,8 +22,12 @@ def format_percentage(n):
     return f"{n*100:.1f}%"
 
 
-def create_chart(data, color="#01689B", y_format="auto"):
-    """Create a clean, modern line chart."""
+def create_chart(data, color="#01689B", y_format="auto", auto_range=False):
+    """Create a clean, modern line chart.
+    
+    Args:
+        auto_range: If True, zoom Y-axis to data range with 10% padding
+    """
     fig = go.Figure()
     
     x_vals = list(range(1, len(data) + 1))
@@ -31,16 +35,35 @@ def create_chart(data, color="#01689B", y_format="auto"):
     # Convert color to rgb for transparency
     r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
     
-    # Area fill under line
+    # Determine hover template based on format
+    if y_format == "percent":
+        hover_template = "%{y:.1%}<extra></extra>"
+    elif y_format == "ratio":
+        hover_template = "%{y:.2f}<extra></extra>"
+    else:
+        hover_template = "%{y:,.0f}<extra></extra>"
+    
+    # Area fill under line (use tonexty for auto_range to avoid fill extending to 0)
     fig.add_trace(go.Scatter(
         x=x_vals,
         y=data,
         mode='lines',
         line=dict(color=color, width=3),
-        fill='tozeroy',
-        fillcolor=f"rgba({r}, {g}, {b}, 0.1)",
-        hovertemplate="%{y:.2f}<extra></extra>" if y_format == "ratio" else "%{y:,.0f}<extra></extra>"
+        fill='tozeroy' if not auto_range else None,
+        fillcolor=f"rgba({r}, {g}, {b}, 0.1)" if not auto_range else None,
+        hovertemplate=hover_template,
+        showlegend=False,
     ))
+    
+    # Calculate Y-axis range with padding if auto_range
+    y_range = None
+    if auto_range and data:
+        data_min = min(data)
+        data_max = max(data)
+        padding = (data_max - data_min) * 0.15  # 15% padding
+        if padding == 0:
+            padding = data_max * 0.1  # If flat line, use 10% of value
+        y_range = [data_min - padding, data_max + padding]
     
     fig.update_layout(
         xaxis=dict(
@@ -56,6 +79,7 @@ def create_chart(data, color="#01689B", y_format="auto"):
             gridcolor="#E8EEF2",
             zeroline=False,
             tickformat=".0%" if y_format == "percent" else None,
+            range=y_range,
         ),
         plot_bgcolor="white",
         paper_bgcolor="white",
@@ -74,188 +98,269 @@ def render():
     results = st.session_state.get("simulation_results", {})
     params = st.session_state.get("simulation_params_used", {})
     
-    if not results:
-        st.warning("No simulation results available.")
-        if st.button("Run a Simulation", type="primary"):
-            st.session_state.current_page = "simulate"
-            st.rerun()
-        return
+    # Create centered content area with side padding
+    left_spacer, content, right_spacer = st.columns([0.15, 8, 0.15])
     
-    # Page header
-    st.markdown(f"""
-        <div style="margin-bottom: 32px;">
-            <h1 style="font-size: 28px; font-weight: 700; color: #1A1A1A; margin: 0 0 8px 0;">
-                Simulation Results
-            </h1>
-            <p style="font-size: 14px; color: #718096; margin: 0;">
-                Completed {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # ===== KPI CARDS ROW =====
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4, gap="medium")
-    
-    with kpi1:
-        st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-label">Total Tax Revenue</div>
-                <div class="kpi-value">{format_number(results.get('total_taxes', 0))}</div>
-                <div class="kpi-change positive">Collected</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi2:
-        st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-label">Total Tax Gap</div>
-                <div class="kpi-value">{format_number(results.get('total_tax_gap', 0))}</div>
-                <div class="kpi-change negative">Cumulative uncollected</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi3:
-        st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-label">Final Compliance</div>
-                <div class="kpi-value">{format_percentage(results.get('final_compliance', 0))}</div>
-                <div class="kpi-change positive">Fully compliant agents</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi4:
-        st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-label">Audits Performed</div>
-                <div class="kpi-value">{results.get('total_audits', 0):,}</div>
-                <div class="kpi-change">Total across simulation</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # Spacing
-    st.markdown("<div style='height: 32px'></div>", unsafe_allow_html=True)
-    
-    # ===== SUMMARY STATISTICS =====
-    with st.expander("Summary Statistics", expanded=True):
-        stat_cols = st.columns(4)
+    with content:
+        if not results:
+            st.warning("No simulation results available.")
+            if st.button("Run a Simulation", type="primary"):
+                st.session_state.current_page = "simulate"
+                st.rerun()
+            return
         
-        with stat_cols[0]:
-            st.metric("Initial Compliance", format_percentage(results.get('initial_compliance', 0)))
-        with stat_cols[1]:
-            st.metric("Max Compliance", format_percentage(results.get('max_compliance', 0)))
-        with stat_cols[2]:
-            st.metric("Final Declaration Ratio", format_percentage(results.get('final_declaration_ratio', 1)))
-        with stat_cols[3]:
-            # Calculate efficiency ratio
-            total_taxes = results.get('total_taxes', 0)
-            tax_gap = results.get('tax_gap', 0)
-            theoretical = total_taxes + tax_gap
-            efficiency = total_taxes / theoretical if theoretical > 0 else 1.0
-            st.metric("Collection Efficiency", format_percentage(efficiency))
+        # Page header - title with date inline (like History page)
+        st.markdown(f'<div style="display:flex; align-items:baseline; gap:16px; margin-bottom:4px;">'
+                    f'<span style="font-size:28px; font-weight:700; color:#1A1A1A;">Simulation Results</span>'
+                    f'<span style="font-size:14px; color:#718096;">{datetime.now().strftime("%B %d, %Y at %I:%M %p")}</span></div>', 
+                    unsafe_allow_html=True)
+        st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:24px;"></div>', unsafe_allow_html=True)
+        
+        # ===== KPI CARDS ROW =====
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4, gap="medium")
     
-    # ===== CHARTS SECTION =====
-    st.markdown("""
-        <h2 style="font-size: 20px; font-weight: 600; color: #1A1A1A; margin: 20px 0;">
-            Trends Over Time
-        </h2>
-    """, unsafe_allow_html=True)
-    
-    # Main chart - Tax Revenue
-    with st.container(border=True):
-        st.markdown("**Tax Revenue Over Time**")
-        taxes_data = results.get("taxes_over_time", list(range(10, 60)))
-        fig = create_chart(taxes_data, "#01689B")
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-    
-    # Four charts in 2x2 grid
-    chart_row1_col1, chart_row1_col2 = st.columns(2, gap="medium")
-    
-    with chart_row1_col1:
-        with st.container(border=True):
-            st.markdown("**Compliance Rate**")
-            compliance_data = results.get("compliance_over_time", [0.0] * 50)
-            fig = create_chart(compliance_data, "#059669", y_format="percent")
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-    
-    with chart_row1_col2:
-        with st.container(border=True):
-            st.markdown("**Tax Gap Trend**")
-            gap_data = results.get("tax_gap_over_time", [100] * 50)
-            fig = create_chart(gap_data, "#DC2626")
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-    
-    chart_row2_col1, chart_row2_col2 = st.columns(2, gap="medium")
-    
-    with chart_row2_col1:
-        with st.container(border=True):
-            st.markdown("**Average Declaration Ratio**")
-            st.caption("Proportion of income declared (even partial compliance)")
-            declaration_data = results.get("declaration_ratio_over_time", [1.0] * 50)
-            fig = create_chart(declaration_data, "#7C3AED", y_format="percent")
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-    
-    with chart_row2_col2:
-        # Placeholder for future chart or can show a dual-axis comparison
-        with st.container(border=True):
-            st.markdown("**Compliance vs Declaration**")
-            st.caption("Full compliance (green) vs partial declaration (purple)")
+        with kpi1:
+            st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Tax Revenue</div>
+                    <div class="kpi-value">{format_number(results.get('total_taxes', 0))}</div>
+                    <div class="kpi-change positive">Collected</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with kpi2:
+            st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Tax Gap</div>
+                    <div class="kpi-value">{format_number(results.get('total_tax_gap', 0))}</div>
+                    <div class="kpi-change negative">Cumulative uncollected</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with kpi3:
+            st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">Final Compliance</div>
+                    <div class="kpi-value">{format_percentage(results.get('final_compliance', 0))}</div>
+                    <div class="kpi-change positive">Fully compliant agents</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with kpi4:
+            st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">Audits Performed</div>
+                    <div class="kpi-value">{results.get('total_audits', 0):,}</div>
+                    <div class="kpi-change">Total across simulation</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Small spacing between KPI rows
+        st.markdown("<div style='height: 16px'></div>", unsafe_allow_html=True)
+        
+        # ===== KPI CARDS ROW 2 (New Metrics) =====
+        kpi5, kpi6, kpi7, kpi8 = st.columns(4, gap="medium")
+        
+        with kpi5:
+            final_four = results.get('final_four', 0)
+            st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">Final FOUR</div>
+                    <div class="kpi-value">{format_percentage(final_four)}</div>
+                    <div class="kpi-change">Fraud opportunity use</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with kpi6:
+            final_morale = results.get('final_tax_morale', 0)
+            st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">Tax Morale</div>
+                    <div class="kpi-value">{final_morale:.1f}%</div>
+                    <div class="kpi-change positive">Intrinsic willingness</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with kpi7:
+            final_mgtr = results.get('final_mgtr', 0)
+            st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">Final MGTR</div>
+                    <div class="kpi-value">{format_percentage(final_mgtr)}</div>
+                    <div class="kpi-change positive">Effective tax rate</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with kpi8:
+            total_penalties = results.get('total_penalties', 0)
+            st.markdown(f"""
+                <div class="kpi-card">
+                    <div class="kpi-label">Correction Yield</div>
+                    <div class="kpi-value">{format_number(total_penalties)}</div>
+                    <div class="kpi-change">Penalties collected</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Spacing
+        st.markdown("<div style='height: 32px'></div>", unsafe_allow_html=True)
+        
+        # ===== SUMMARY STATISTICS =====
+        with st.expander("Summary Statistics", expanded=True):
+            stat_cols = st.columns(4, gap="medium")
             
-            fig = go.Figure()
-            x_vals = list(range(1, len(compliance_data) + 1))
+            with stat_cols[0]:
+                st.metric("Initial Compliance", format_percentage(results.get('initial_compliance', 0)))
+            with stat_cols[1]:
+                st.metric("Max Compliance", format_percentage(results.get('max_compliance', 0)))
+            with stat_cols[2]:
+                st.metric("Final Declaration Ratio", format_percentage(results.get('final_declaration_ratio', 1)))
+            with stat_cols[3]:
+                # Calculate efficiency ratio
+                total_taxes = results.get('total_taxes', 0)
+                tax_gap = results.get('tax_gap', 0)
+                theoretical = total_taxes + tax_gap
+                efficiency = total_taxes / theoretical if theoretical > 0 else 1.0
+                st.metric("Collection Efficiency", format_percentage(efficiency))
+        
+        # ===== SIMULATION PARAMETERS (moved up for visibility) =====
+        with st.expander("Simulation Parameters Used"):
+            param_cols = st.columns(3)
             
-            fig.add_trace(go.Scatter(
-                x=x_vals, y=compliance_data,
-                mode='lines', name='Compliance Rate',
-                line=dict(color='#059669', width=2),
-            ))
-            fig.add_trace(go.Scatter(
-                x=x_vals, y=declaration_data,
-                mode='lines', name='Declaration Ratio',
-                line=dict(color='#7C3AED', width=2),
-            ))
+            with param_cols[0]:
+                st.markdown("**Population**")
+                st.write(f"• Agents: {params.get('n_agents', 'N/A'):,}")
+                st.write(f"• Business ratio: {params.get('business_ratio', 0)*100:.1f}%")
+                st.write(f"• Steps: {params.get('n_steps', 'N/A')}")
             
-            fig.update_layout(
-                xaxis=dict(title="Time Period", tickfont=dict(size=11), showgrid=True, gridcolor="#E8EEF2"),
-                yaxis=dict(tickfont=dict(size=11), showgrid=True, gridcolor="#E8EEF2", tickformat=".0%"),
-                plot_bgcolor="white", paper_bgcolor="white",
-                margin=dict(l=40, r=20, t=20, b=40),
-                height=280, hovermode="x unified",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                showlegend=True,
-            )
+            with param_cols[1]:
+                st.markdown("**Policy**")
+                st.write(f"• Tax rate: {params.get('tax_rate', 0)*100:.0f}%")
+                st.write(f"• Penalty: {params.get('penalty_rate', 0):.1f}×")
+                st.write(f"• Runs: {params.get('n_runs', 'N/A')}")
+            
+            with param_cols[2]:
+                st.markdown("**Enforcement**")
+                st.write(f"• Strategy: {params.get('audit_strategy', 'N/A')}")
+                st.write(f"• Private audit: {params.get('audit_rate_private', 0)*100:.1f}%")
+                st.write(f"• Business audit: {params.get('audit_rate_business', 0)*100:.1f}%")
+        
+        # ===== CHARTS SECTION =====
+        st.markdown("""
+            <h2 style="font-size: 20px; font-weight: 600; color: #1A1A1A; margin: 20px 0;">
+                Trends Over Time
+            </h2>
+        """, unsafe_allow_html=True)
+        
+        # Main chart - Tax Revenue
+        with st.container(border=True):
+            st.markdown("**Tax Revenue Over Time**")
+            taxes_data = results.get("taxes_over_time", list(range(10, 60)))
+            fig = create_chart(taxes_data, "#01689B", auto_range=True)
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-    
-    # ===== SIMULATION PARAMETERS =====
-    with st.expander("Simulation Parameters Used"):
-        param_cols = st.columns(3)
         
-        with param_cols[0]:
-            st.markdown("**Population**")
-            st.write(f"• Agents: {params.get('n_agents', 'N/A'):,}")
-            st.write(f"• Business ratio: {params.get('business_ratio', 0)*100:.1f}%")
-            st.write(f"• Steps: {params.get('n_steps', 'N/A')}")
+        # Four charts in 2x2 grid
+        chart_row1_col1, chart_row1_col2 = st.columns(2, gap="medium")
         
-        with param_cols[1]:
-            st.markdown("**Policy**")
-            st.write(f"• Tax rate: {params.get('tax_rate', 0)*100:.0f}%")
-            st.write(f"• Penalty: {params.get('penalty_rate', 0):.1f}×")
-            st.write(f"• Runs: {params.get('n_runs', 'N/A')}")
+        with chart_row1_col1:
+            with st.container(border=True):
+                st.markdown("**Compliance Rate**")
+                compliance_data = results.get("compliance_over_time", [0.0] * 50)
+                fig = create_chart(compliance_data, "#059669", y_format="percent", auto_range=True)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
-        with param_cols[2]:
-            st.markdown("**Enforcement**")
-            st.write(f"• Strategy: {params.get('audit_strategy', 'N/A')}")
-            st.write(f"• Private audit: {params.get('audit_rate_private', 0)*100:.1f}%")
-            st.write(f"• Business audit: {params.get('audit_rate_business', 0)*100:.1f}%")
-    
-    # ===== ACTION BAR =====
-    st.markdown("<div style='height: 24px'></div>", unsafe_allow_html=True)
-    st.divider()
-    
-    col1, spacer, col2 = st.columns([1, 3, 1])
-    
-    with col1:
-        st.button("Export Results", use_container_width=True, key="btn_export")
-    with col2:
-        if st.button("New Simulation", type="primary", use_container_width=True, key="btn_new"):
-            st.session_state.current_page = "simulate"
-            st.rerun()
+        with chart_row1_col2:
+            with st.container(border=True):
+                st.markdown("**Tax Gap Trend**")
+                gap_data = results.get("tax_gap_over_time", [100] * 50)
+                fig = create_chart(gap_data, "#DC2626")
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        chart_row2_col1, chart_row2_col2 = st.columns(2, gap="medium")
+        
+        with chart_row2_col1:
+            with st.container(border=True):
+                st.markdown("**Average Declaration Ratio**")
+                declaration_data = results.get("declaration_ratio_over_time", [1.0] * 50)
+                fig = create_chart(declaration_data, "#7C3AED", y_format="percent", auto_range=True)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        with chart_row2_col2:
+            with st.container(border=True):
+                st.markdown("**Tax Morale**")
+                morale_data_raw = results.get("tax_morale_over_time", [50.0] * 50)
+                # Convert from 0-100 to 0-1 scale for percentage formatting
+                morale_data = [v / 100 for v in morale_data_raw]
+                fig = create_chart(morale_data, "#F59E0B", y_format="percent", auto_range=True)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Third row: FOUR and MGTR
+        chart_row3_col1, chart_row3_col2 = st.columns(2, gap="medium")
+        
+        with chart_row3_col1:
+            with st.container(border=True):
+                st.markdown("**Fraud Opportunity Use Rate (FOUR)**")
+                four_data = results.get("four_over_time", [0.5] * 50)
+                fig = create_chart(four_data, "#EF4444", y_format="percent", auto_range=True)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        with chart_row3_col2:
+            with st.container(border=True):
+                st.markdown("**Mean Gross Tax Rate (MGTR)**")
+                mgtr_data = results.get("mgtr_over_time", [0.3] * 50)
+                fig = create_chart(mgtr_data, "#3B82F6", y_format="percent", auto_range=True)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Fourth row: PSO and Comparison
+        chart_row4_col1, chart_row4_col2 = st.columns(2, gap="medium")
+        
+        with chart_row4_col1:
+            with st.container(border=True):
+                st.markdown("**Service Experience (1-5 scale)**")
+                pso_data = results.get("pso_over_time", [3.0] * 50)
+                fig = create_chart(pso_data, "#10B981", y_format="ratio", auto_range=True)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        with chart_row4_col2:
+            with st.container(border=True):
+                st.markdown("**Compliance vs Declaration**")
+                
+                fig = go.Figure()
+                x_vals = list(range(1, len(compliance_data) + 1))
+                
+                fig.add_trace(go.Scatter(
+                    x=x_vals, y=compliance_data,
+                    mode='lines', name='Compliance Rate',
+                    line=dict(color='#059669', width=2),
+                    hovertemplate="%{y:.1%}<extra></extra>",
+                ))
+                fig.add_trace(go.Scatter(
+                    x=x_vals, y=declaration_data,
+                    mode='lines', name='Declaration Ratio',
+                    line=dict(color='#7C3AED', width=2),
+                    hovertemplate="%{y:.1%}<extra></extra>",
+                ))
+                
+                fig.update_layout(
+                    xaxis=dict(title="Time Period", tickfont=dict(size=11), showgrid=True, gridcolor="#E8EEF2"),
+                    yaxis=dict(tickfont=dict(size=11), showgrid=True, gridcolor="#E8EEF2", tickformat=".0%"),
+                    plot_bgcolor="white", paper_bgcolor="white",
+                    margin=dict(l=40, r=20, t=20, b=40),
+                    height=280, hovermode="x unified",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    showlegend=True,
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        
+        # ===== ACTION BAR =====
+        st.markdown("<div style='height: 24px'></div>", unsafe_allow_html=True)
+        st.divider()
+        
+        col1, spacer, col2 = st.columns([1, 3, 1])
+        
+        with col1:
+            st.button("Export Results", use_container_width=True, key="btn_export")
+        with col2:
+            if st.button("New Simulation", type="primary", use_container_width=True, key="btn_new"):
+                st.session_state.current_page = "simulate"
+                st.rerun()

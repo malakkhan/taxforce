@@ -53,6 +53,7 @@ class NetworkBuilder:
 
         for agent in agents:
             agent.neighbors = [graph.nodes[n]["agent"] for n in graph.neighbors(agent.unique_id)]
+            agent.neighbor_ids = [n.unique_id for n in agent.neighbors]
 
         return graph
 

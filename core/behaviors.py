@@ -19,8 +19,8 @@ class DishonestBehavior(BehaviorStrategy):
     def decide(self, agent):
         max_concealable = opportunity_filter(agent)
         willingness = normative_filter(agent, max_concealable)
-        provisional = rational_choice_filter(agent, willingness)
-        final_evasion = social_influence_filter(agent, provisional, max_concealable)
+        adjusted_willingness = social_influence_filter(agent, willingness, max_concealable)
+        final_evasion = rational_choice_filter(agent, adjusted_willingness)
         
         declared = agent.true_income - final_evasion
         return max(0.0, declared)

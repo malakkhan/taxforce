@@ -23,7 +23,7 @@ def render():
     spacer1, card_area, spacer2 = st.columns([0.5, 3, 0.5])
     
     with card_area:
-        col1, col2 = st.columns(2, gap="large")
+        col1, col2, col3 = st.columns(3, gap="large")
         
         with col1:
             # Original card design inside a container
@@ -41,7 +41,7 @@ def render():
                             Run Simulation
                         </div>
                         <div style="font-size: 14px; color: #718096;">
-                            Configure parameters and run tax policy simulations with Monte Carlo analysis
+                            Configure and run tax policy simulations
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
@@ -67,13 +67,40 @@ def render():
                             View History
                         </div>
                         <div style="font-size: 14px; color: #718096;">
-                            Browse past simulation results and compare different policy configurations
+                            Browse past simulation results
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
                 
                 if st.button("View Past Results", key="btn_history", use_container_width=True, type="primary"):
                     st.session_state.current_page = "history"
+                    st.rerun()
+        
+        with col3:
+            # Compare Runs card
+            with st.container(border=True):
+                st.markdown("""
+                    <div style="text-align: center; padding: 20px 16px;">
+                        <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #01689B 0%, #154273 100%); 
+                                    border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                                    margin: 0 auto 20px auto;">
+                            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="white" stroke-width="2">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 600; color: #1A1A1A; margin-bottom: 8px;">
+                            Compare Runs
+                        </div>
+                        <div style="font-size: 14px; color: #718096;">
+                            Side-by-side performance comparison
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button("Compare Results", key="btn_comparison", use_container_width=True, type="primary"):
+                    st.session_state.current_page = "comparison"
                     st.rerun()
     
     # Quick stats section

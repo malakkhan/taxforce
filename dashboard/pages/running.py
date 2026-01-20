@@ -175,6 +175,11 @@ def run_simulation(params: dict, progress_callback=None):
     all_taxes = []
     all_audits = []
     all_declaration_ratio = []
+    all_tax_morale = []
+    all_four = []
+    all_pso = []
+    all_mgtr = []
+    all_penalties = []
     
     total_iterations = n_runs * n_steps
     current_iteration = 0
@@ -188,6 +193,11 @@ def run_simulation(params: dict, progress_callback=None):
         run_taxes = []
         run_audits = []
         run_declaration_ratio = []
+        run_tax_morale = []
+        run_four = []
+        run_pso = []
+        run_mgtr = []
+        run_penalties = []
         
         for step in range(n_steps):
             model.step()
@@ -200,6 +210,11 @@ def run_simulation(params: dict, progress_callback=None):
                 run_taxes.append(df['Total_Taxes'].iloc[-1])
                 run_audits.append(df['Audits'].iloc[-1])
                 run_declaration_ratio.append(df['Avg_Declaration_Ratio'].iloc[-1])
+                run_tax_morale.append(df['Tax_Morale'].iloc[-1])
+                run_four.append(df['Avg_FOUR'].iloc[-1])
+                run_pso.append(df['Avg_PSO'].iloc[-1])
+                run_mgtr.append(df['MGTR'].iloc[-1])
+                run_penalties.append(df['Penalties'].iloc[-1])
             
             # Update progress
             current_iteration += 1
@@ -212,6 +227,11 @@ def run_simulation(params: dict, progress_callback=None):
         all_taxes.append(run_taxes)
         all_audits.append(run_audits)
         all_declaration_ratio.append(run_declaration_ratio)
+        all_tax_morale.append(run_tax_morale)
+        all_four.append(run_four)
+        all_pso.append(run_pso)
+        all_mgtr.append(run_mgtr)
+        all_penalties.append(run_penalties)
     
     # Average across runs
     import numpy as np
@@ -219,7 +239,12 @@ def run_simulation(params: dict, progress_callback=None):
     avg_tax_gap = np.mean(all_tax_gap, axis=0).tolist()
     avg_taxes = np.mean(all_taxes, axis=0).tolist()
     avg_declaration_ratio = np.mean(all_declaration_ratio, axis=0).tolist()
+    avg_tax_morale = np.mean(all_tax_morale, axis=0).tolist()
+    avg_four = np.mean(all_four, axis=0).tolist()
+    avg_pso = np.mean(all_pso, axis=0).tolist()
+    avg_mgtr = np.mean(all_mgtr, axis=0).tolist()
     total_audits = int(np.sum(all_audits))
+    total_penalties = float(np.sum(all_penalties))
     
     # Build results dict
     results = {
@@ -227,6 +252,10 @@ def run_simulation(params: dict, progress_callback=None):
         "tax_gap_over_time": avg_tax_gap,
         "taxes_over_time": avg_taxes,
         "declaration_ratio_over_time": avg_declaration_ratio,
+        "tax_morale_over_time": avg_tax_morale,
+        "four_over_time": avg_four,
+        "pso_over_time": avg_pso,
+        "mgtr_over_time": avg_mgtr,
         "total_taxes": int(np.mean([sum(t) for t in all_taxes])),
         "total_tax_gap": int(np.mean([sum(tg) for tg in all_tax_gap])),  # Cumulative gap
         "final_tax_gap": float(np.mean([tg[-1] for tg in all_tax_gap])),  # Final year only
@@ -234,6 +263,12 @@ def run_simulation(params: dict, progress_callback=None):
         "initial_compliance": float(avg_compliance[0]) if avg_compliance else 0.0,
         "max_compliance": float(max(avg_compliance)) if avg_compliance else 0.0,
         "final_declaration_ratio": float(avg_declaration_ratio[-1]) if avg_declaration_ratio else 1.0,
+        "final_tax_morale": float(avg_tax_morale[-1]) if avg_tax_morale else 0.0,
+        "initial_tax_morale": float(avg_tax_morale[0]) if avg_tax_morale else 0.0,
+        "final_four": float(avg_four[-1]) if avg_four else 0.0,
+        "final_pso": float(avg_pso[-1]) if avg_pso else 0.0,
+        "final_mgtr": float(avg_mgtr[-1]) if avg_mgtr else 0.0,
+        "total_penalties": total_penalties,
         "total_audits": total_audits,
     }
     
@@ -243,6 +278,24 @@ def run_simulation(params: dict, progress_callback=None):
 def render():
     """Render the simulation running page."""
     
+    # Aggressive CSS to hide any leftover elements from previous page
+    # Uses a pseudo-element to create a solid background that covers remnants
+    st.markdown("""
+        <style>
+        /* Hide any expanders that might be leftover from simulate page */
+        [data-testid="stExpander"] {
+            display: none !important;
+        }
+        
+        /* Ensure running page has clean background */
+        .main .block-container {
+            padding-top: 2rem !important;
+            background: #E8F4FD !important;
+            min-height: 100vh !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     # Get simulation parameters
     params = st.session_state.get("simulation_params", {})
     if not params:
@@ -250,30 +303,34 @@ def render():
         st.rerun()
         return
     
-    # Create centered layout
-    spacer1, center, spacer2 = st.columns([1, 2, 1])
+    # Use a single container that takes up the viewport
+    main_container = st.container()
     
-    with center:
-        st.write("")
-        st.write("")
-        st.write("")
+    with main_container:
+        # Create centered layout
+        spacer1, center, spacer2 = st.columns([1, 2, 1])
         
-        # Progress card
-        with st.container(border=True):
-            st.markdown("### Running simulation...")
-            st.caption("Executing tax compliance model")
-            
+        with center:
             st.write("")
-            progress_bar = st.progress(0)
-            status_text = st.empty()
+            st.write("")
             st.write("")
             
-            # Cancel button placeholder
-            cancel_col1, cancel_col2, cancel_col3 = st.columns([1, 1, 1])
-            with cancel_col2:
-                cancel_placeholder = st.empty()
-        
-        st.write("")
+            # Progress card
+            with st.container(border=True):
+                st.markdown("### Running simulation...")
+                st.caption("Executing tax compliance model")
+                
+                st.write("")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                st.write("")
+                
+                # Cancel button placeholder
+                cancel_col1, cancel_col2, cancel_col3 = st.columns([1, 1, 1])
+                with cancel_col2:
+                    cancel_placeholder = st.empty()
+            
+            st.write("")
     
     # Progress callback
     def update_progress(progress, status):
@@ -297,16 +354,17 @@ def render():
                 "n_agents": params.get("n_agents", 1000),
                 "n_steps": params.get("n_steps", 50),
                 "total_taxes": results_data["total_taxes"],
-                "tax_gap": results_data["tax_gap"],
-                "interventions": results_data["interventions"],
-                "tax_morale": results_data["tax_morale"],
+                "tax_gap": results_data["final_tax_gap"],
+                "compliance": results_data["final_compliance"],
+                "audits": results_data["total_audits"],
                 "results": results_data,
                 "params": params,
             }
             add_history_entry(history_entry)
         except Exception as e:
-            # History persistence is optional
-            pass
+            # Log the error for debugging but don't crash
+            import logging
+            logging.warning(f"Failed to save history: {e}")
         
         time.sleep(0.3)
         st.session_state.current_page = "results"

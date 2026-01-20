@@ -41,6 +41,7 @@ class BaseAgent(mesa.Agent):
         self.true_income = 0.0
         self.declared_income = 0.0
         self.neighbors = []
+        self.neighbor_ids = []
     
     @abstractmethod
     def calculate_opportunity(self):
@@ -63,11 +64,12 @@ class BaseAgent(mesa.Agent):
     def is_compliant(self):
         return self.declared_income >= self.true_income - 0.01 # small tolerance for floating point issues
     
-    @sim_cache
+    # @sim_cache
     def get_evasion_rate(self):
         max_evadable = self.calculate_opportunity() * self.true_income
         if max_evadable <= 0: return 0.0
-        return self.evaded_income / max_evadable
+        rate = self.evaded_income / max_evadable
+        return max(0.0, min(1.0, rate))
     
     def step(self):
         self.declared_income = self.behavior.decide(self)

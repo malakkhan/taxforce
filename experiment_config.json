@@ -1,6 +1,6 @@
 {
     "simulation": {
-        "n_agents": 1000,
+        "n_agents": 10000,
         "n_steps": 50,
         "business_ratio": 0.2
     },
