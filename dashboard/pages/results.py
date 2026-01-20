@@ -121,7 +121,7 @@ def render():
     
         with kpi1:
             st.markdown(f"""
-                <div class="kpi-card">
+                <div class="kpi-card" title="Total tax revenue collected from declared income across all agents throughout the simulation.">
                     <div class="kpi-label">Total Tax Revenue</div>
                     <div class="kpi-value">{format_number(results.get('total_taxes', 0))}</div>
                     <div class="kpi-change positive">Collected</div>
@@ -130,7 +130,7 @@ def render():
         
         with kpi2:
             st.markdown(f"""
-                <div class="kpi-card">
+                <div class="kpi-card" title="Total calculated tax gap (evaded income × tax rate) accumulated across all agents and steps.">
                     <div class="kpi-label">Total Tax Gap</div>
                     <div class="kpi-value">{format_number(results.get('total_tax_gap', 0))}</div>
                     <div class="kpi-change negative">Cumulative uncollected</div>
@@ -139,7 +139,7 @@ def render():
         
         with kpi3:
             st.markdown(f"""
-                <div class="kpi-card">
+                <div class="kpi-card" title="Percentage of agents who were fully compliant (100% declaration) in the final simulation step.">
                     <div class="kpi-label">Final Compliance</div>
                     <div class="kpi-value">{format_percentage(results.get('final_compliance', 0))}</div>
                     <div class="kpi-change positive">Fully compliant agents</div>
@@ -148,7 +148,7 @@ def render():
         
         with kpi4:
             st.markdown(f"""
-                <div class="kpi-card">
+                <div class="kpi-card" title="Total number of audits conducted throughout the simulation run.">
                     <div class="kpi-label">Audits Performed</div>
                     <div class="kpi-value">{results.get('total_audits', 0):,}</div>
                     <div class="kpi-change">Total across simulation</div>
@@ -164,7 +164,7 @@ def render():
         with kpi5:
             final_four = results.get('final_four', 0)
             st.markdown(f"""
-                <div class="kpi-card">
+                <div class="kpi-card" title="Fraud Opportunity Use Rate: Average evasion rate among non-honest agents who had an opportunity to evade.">
                     <div class="kpi-label">Final FOUR</div>
                     <div class="kpi-value">{format_percentage(final_four)}</div>
                     <div class="kpi-change">Fraud opportunity use</div>
@@ -174,7 +174,7 @@ def render():
         with kpi6:
             final_morale = results.get('final_tax_morale', 0)
             st.markdown(f"""
-                <div class="kpi-card">
+                <div class="kpi-card" title="Average intrinsic willingness to pay taxes (0-100%), weighted by social norms, societal norms, PSO, and trust.">
                     <div class="kpi-label">Tax Morale</div>
                     <div class="kpi-value">{final_morale:.1f}%</div>
                     <div class="kpi-change positive">Intrinsic willingness</div>
@@ -184,7 +184,7 @@ def render():
         with kpi7:
             final_mgtr = results.get('final_mgtr', 0)
             st.markdown(f"""
-                <div class="kpi-card">
+                <div class="kpi-card" title="Mean Gross Tax Rate: The effective tax burden (Taxes + Penalties) divided by True Income in the final step.">
                     <div class="kpi-label">Final MGTR</div>
                     <div class="kpi-value">{format_percentage(final_mgtr)}</div>
                     <div class="kpi-change positive">Effective tax rate</div>
@@ -194,7 +194,7 @@ def render():
         with kpi8:
             total_penalties = results.get('total_penalties', 0)
             st.markdown(f"""
-                <div class="kpi-card">
+                <div class="kpi-card" title="Total revenue generated specifically from penalties applied during audits.">
                     <div class="kpi-label">Correction Yield</div>
                     <div class="kpi-value">{format_number(total_penalties)}</div>
                     <div class="kpi-change">Penalties collected</div>
@@ -209,18 +209,18 @@ def render():
             stat_cols = st.columns(4, gap="medium")
             
             with stat_cols[0]:
-                st.metric("Initial Compliance", format_percentage(results.get('initial_compliance', 0)))
+                st.metric("Initial Compliance", format_percentage(results.get('initial_compliance', 0)), help="Percentage of fully compliant agents at the start of the simulation.")
             with stat_cols[1]:
-                st.metric("Max Compliance", format_percentage(results.get('max_compliance', 0)))
+                st.metric("Max Compliance", format_percentage(results.get('max_compliance', 0)), help="The highest compliance rate achieved during any single step of the simulation.")
             with stat_cols[2]:
-                st.metric("Final Declaration Ratio", format_percentage(results.get('final_declaration_ratio', 1)))
+                st.metric("Final Declaration Ratio", format_percentage(results.get('final_declaration_ratio', 1)), help="Average ratio of (Declared Income / True Income) across all agents in the final step.")
             with stat_cols[3]:
                 # Calculate efficiency ratio
                 total_taxes = results.get('total_taxes', 0)
                 tax_gap = results.get('tax_gap', 0)
                 theoretical = total_taxes + tax_gap
                 efficiency = total_taxes / theoretical if theoretical > 0 else 1.0
-                st.metric("Collection Efficiency", format_percentage(efficiency))
+                st.metric("Collection Efficiency", format_percentage(efficiency), help="Ratio of Total Taxes Collected / (Total Taxes + Tax Gap). Represents the percentage of theoretical potential revenue that was actually captured.")
         
         # ===== SIMULATION PARAMETERS (moved up for visibility) =====
         with st.expander("Simulation Parameters Used"):
@@ -253,7 +253,7 @@ def render():
         
         # Main chart - Tax Revenue
         with st.container(border=True):
-            st.markdown("**Tax Revenue Over Time**")
+            st.markdown("**Tax Revenue Over Time**", help="Total tax revenue collected at each simulation step.")
             taxes_data = results.get("taxes_over_time", list(range(10, 60)))
             fig = create_chart(taxes_data, "#01689B", auto_range=True)
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
@@ -263,14 +263,14 @@ def render():
         
         with chart_row1_col1:
             with st.container(border=True):
-                st.markdown("**Compliance Rate**")
+                st.markdown("**Compliance Rate**", help="Percentage of agents who are fully compliant (100% declaration) at each step.")
                 compliance_data = results.get("compliance_over_time", [0.0] * 50)
                 fig = create_chart(compliance_data, "#059669", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         with chart_row1_col2:
             with st.container(border=True):
-                st.markdown("**Tax Gap Trend**")
+                st.markdown("**Tax Gap Trend**", help="Total uncollected tax revenue (evaded income × tax rate) at each step.")
                 gap_data = results.get("tax_gap_over_time", [100] * 50)
                 fig = create_chart(gap_data, "#DC2626")
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
@@ -279,14 +279,14 @@ def render():
         
         with chart_row2_col1:
             with st.container(border=True):
-                st.markdown("**Average Declaration Ratio**")
+                st.markdown("**Average Declaration Ratio**", help="Average ratio of (Declared Income / True Income) across all agents at each step.")
                 declaration_data = results.get("declaration_ratio_over_time", [1.0] * 50)
                 fig = create_chart(declaration_data, "#7C3AED", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         with chart_row2_col2:
             with st.container(border=True):
-                st.markdown("**Tax Morale**")
+                st.markdown("**Tax Morale**", help="Average Tax Morale score (0-100%) across population, reflecting intrinsic willingness to comply.")
                 morale_data_raw = results.get("tax_morale_over_time", [50.0] * 50)
                 # Convert from 0-100 to 0-1 scale for percentage formatting
                 morale_data = [v / 100 for v in morale_data_raw]
@@ -298,14 +298,14 @@ def render():
         
         with chart_row3_col1:
             with st.container(border=True):
-                st.markdown("**Fraud Opportunity Use Rate (FOUR)**")
+                st.markdown("**Fraud Opportunity Use Rate (FOUR)**", help="Average evasion rate among non-honest agents who had an opportunity to evade.")
                 four_data = results.get("four_over_time", [0.5] * 50)
                 fig = create_chart(four_data, "#EF4444", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         with chart_row3_col2:
             with st.container(border=True):
-                st.markdown("**Mean Gross Tax Rate (MGTR)**")
+                st.markdown("**Mean Gross Tax Rate (MGTR)**", help="Effective tax rate: (Total Revenue + Penalties) / Total True Income.")
                 mgtr_data = results.get("mgtr_over_time", [0.3] * 50)
                 fig = create_chart(mgtr_data, "#3B82F6", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
@@ -315,14 +315,14 @@ def render():
         
         with chart_row4_col1:
             with st.container(border=True):
-                st.markdown("**Service Experience (1-5 scale)**")
+                st.markdown("**Service Experience (1-5 scale)**", help="Average Perceived Service Orientation (PSO) towards the tax authority.")
                 pso_data = results.get("pso_over_time", [3.0] * 50)
                 fig = create_chart(pso_data, "#10B981", y_format="ratio", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         with chart_row4_col2:
             with st.container(border=True):
-                st.markdown("**Compliance vs Declaration**")
+                st.markdown("**Compliance vs Declaration**", help="Direct comparison of the Compliance Rate (binary) vs the Declaration Ratio (continuous) to show if agents are partially evading or fully compliant.")
                 
                 fig = go.Figure()
                 x_vals = list(range(1, len(compliance_data) + 1))
