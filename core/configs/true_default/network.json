@@ -1,0 +1,10 @@
+{
+    "network": {
+        "topology": "lognormal",
+        "degree_mean": 86.27,
+        "degree_std": 64.99,
+        "degree_min": 1,
+        "degree_max": 675,
+        "homophily": 0.80
+    }
+}

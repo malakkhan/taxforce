@@ -1,0 +1,56 @@
+{
+    "simulation": {
+        "n_agents": 10000,
+        "n_steps": 50,
+        "business_ratio": 0.2
+    },
+    "behaviors": {
+        "distribution": {
+            "honest": 0,
+            "dishonest": 1
+        }
+    },
+    "norm_update": {
+        "social_norm_scale": {
+            "private": 0.1,
+            "business": 0.1
+        }
+    },  
+    "social": {
+        "social_influence": 0.1,
+        "pso_boost": 0.0,
+        "trust_boost": 0.0
+    },
+    "traits": {
+        "private": {
+            "subjective_audit_prob": {
+                "mean": 20.0,
+                "std": 15.0,
+                "min": 0,
+                "max": 100
+            }
+        },
+        "business": {
+            "subjective_audit_prob": {
+                "mean": 22.0,
+                "std": 15.0,
+                "min": 0,
+                "max": 100
+            }
+        }
+    },
+    "belief_strategies": {
+        "hashimzade": {
+            "drift": {
+                "private": {
+                    "mean": 20.0,
+                    "step": 1.5
+                },
+                "business": {
+                    "mean": 22.0,
+                    "step": 1.5
+                }
+            }
+        }
+    }
+}

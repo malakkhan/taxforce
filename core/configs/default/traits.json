@@ -1,0 +1,110 @@
+{
+    "traits": {
+        "private": {
+            "personal_norms": {
+                "mean": 3.40,
+                "std": 1.15,
+                "min": 1,
+                "max": 5
+            },
+            "subjective_audit_prob": {
+                "mean": 20,
+                "std": 15,
+                "min": 0,
+                "max": 100
+            },
+            "perceived_service_orientation": {
+                "mean": 3.22,
+                "std": 0.68,
+                "min": 1,
+                "max": 5
+            },
+            "perceived_trustworthiness": {
+                "mean": 3.37,
+                "std": 0.69,
+                "min": 1,
+                "max": 5
+            },
+            "social_norms": {
+                "mean": 3.42,
+                "std": 1.06,
+                "min": 1,
+                "max": 5
+            },
+            "societal_norms": {
+                "mean": 3.97,
+                "std": 1.01,
+                "min": 1,
+                "max": 5
+            },
+            "risk_aversion": {
+                "mean": 2.0,
+                "std": 1.0,
+                "min": 0.5,
+                "max": 5.0
+            }
+        },
+        "business": {
+            "personal_norms": {
+                "mean": 3.82,
+                "std": 1.04,
+                "min": 1,
+                "max": 5
+            },
+            "subjective_audit_prob": {
+                "mean": 22,
+                "std": 15.0,
+                "min": 0,
+                "max": 100
+            },
+            "perceived_service_orientation": {
+                "mean": 3.18,
+                "std": 0.67,
+                "min": 1,
+                "max": 5
+            },
+            "perceived_trustworthiness": {
+                "mean": 3.37,
+                "std": 0.69,
+                "min": 1,
+                "max": 5
+            },
+            "social_norms": {
+                "mean": 3.82,
+                "std": 1.02,
+                "min": 1,
+                "max": 5
+            },
+            "societal_norms": {
+                "mean": 4.12,
+                "std": 0.98,
+                "min": 1,
+                "max": 5
+            },
+            "risk_aversion": {
+                "mean": 2.0,
+                "std": 1.0,
+                "min": 0.5,
+                "max": 5.0
+            }
+        }
+    },
+    "filters": {
+        "beta": {
+            "private": {
+                "PN": 0.23,
+                "SN": 0.04,
+                "StN": 0.11,
+                "PT": 0.13,
+                "PSO": 0.12
+            },
+            "business": {
+                "PN": 0.28,
+                "SN": 0.12,
+                "StN": 0.09,
+                "PT": 0.14,
+                "PSO": 0.11
+            }
+        }
+    }
+}

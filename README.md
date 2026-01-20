@@ -1,61 +1,54 @@
-# Belastingdienst SME Tax Compliance ABM
+# TaxForce Dashboard
 
-An Agent-Based Model (ABM) simulating tax compliance behavior among Small and Medium Enterprises (SMEs).
+## Getting Started
 
-## Overview
-This model simulates the interaction between tax authorities and SMEs. It captures:
-* **Rational Choice:** Decision-making based on audit rates and penalty multipliers.
-* **Normative Filters:** The impact of tax morale and trust in authorities.
-* **Social Influence:** How morale spreads through a network topology.
-* **'Enforecement' Dynamics** The impact of audits, convenants and guidance (information provision).
+To ensure a consistent environment, we recommend using `uv` to manage dependencies.
 
-## Installation
-Open your terminal, go to the folder where you want to put the code:
+> [!IMPORTANT]
+> **Version Consistency is Critical**
+> The dashboard's layout and functionality (especially Streamlit components) can vary significantly between versions. To reproduce the intended user experience and results, it is essential to use the exact package versions specified in `requirements.txt`. **Using a virtual environment is highly recommended to ensure these versions match exactly.**
+
+### Prerequisites
+
+- Python 3 (specifically 3.10.12 is recommended)
+- [`uv`](https://github.com/astral-sh/uv)
+
+### Installation
+
+1. **Create a virtual environment:**
+   ```bash
+   uv venv
+   ```
+
+2. **Activate the environment:**
+   ```bash
+   source .venv/bin/activate
+   # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   uv pip install -r requirements.txt
+   ```
+
+### Running the Dashboard
+
+Launch the dashboard application:
 ```bash
-cd target-folder
-```
-Clone the repository:
-```bash
-git clone https://github.com/malakkhan/taxforce.git
-cd your-repo-name
-```
-  
-## Install dependencies:
-
-```bash
-pip install -r requirements.txt
+python3 run_dashboard.py
 ```
 
-## Usage
-To launch the interactive dashboard:
-```bash
-python server.py
-```
+### Troubleshooting
 
-## Model Parameters
-- **N**: Total number of SME agents.
-- **Audit Rate ($p_a$):** The probability of an agent being audited.
-- **Penalty Multiplier:** The rate of fine applied to evaded tax.
-- **Social Influence ($w$):** The weight of peer influence on individual tax morale.
+**Compatibility Issues / Python Version**
 
-## Agent Parameters
-- **category**: Micro, Small, or Medium.
-- **true_profit**: The actual taxable income ($W$) before tax.
-- **tax_morale**: Intrinsic motivation to pay taxes ($\chi$).
-- **trust**: Belief in the benevolence of authorities.
-- **subjective_audit_prob**: The agent's perceived risk of being caught ($p_e$).
-- **has_advisor**: Whether the SME employs a fiscal advisor ($F$).
-
-## Push to GitHub
-Open your terminal or command prompt and run these commands to upload your code:
+This project is built and tested with **Python 3.10.12**. If you encounter issues, please try using this exact version. You can easily install and use it with `uv`:
 
 ```bash
-# Add all new files
-git add .
+# Install the specific python version
+uv python install 3.10.12
 
-# Commit your changes (example)
-git commit -m "Initial commit: Added SME Tax Compliance ABM modules"
-
-# Push to the existing remote
-git push origin main
+# Re-create the virtual environment using this version
+uv venv --python 3.10.12
 ```
+Then proceed with activating the environment and installing dependencies as described above.
