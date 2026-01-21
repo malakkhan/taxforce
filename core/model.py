@@ -135,6 +135,16 @@ class TaxComplianceModel(mesa.Model):
                     audited_neighbors=audited_interacting
                 )
 
+        # Belief Update (Subjective Audit Probability)
+        omega = self.social_influence
+        for agent in agents_list:
+            interacting = interaction_sets[agent.unique_id]
+            if interacting:
+                neighbor_probs = [n.traits.subjective_audit_prob for n in interacting]
+                median_prob = np.median(neighbor_probs)
+                p = agent.traits.subjective_audit_prob
+                agent.traits.subjective_audit_prob = np.clip((1 - omega) * p + omega * median_prob, 0.0, 100.0)
+
         compliance_scores = {a.unique_id: updaters.compute_compliance_score(a) for a in agents_list}
         
         agent_raw_scores = {}

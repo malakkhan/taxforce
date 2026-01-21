@@ -32,12 +32,6 @@ class HashimzadeBeliefStrategy(BeliefStrategy):
             direction = np.sign(mean - traits.subjective_audit_prob)
             traits.subjective_audit_prob += step * direction
 
-        if audited_neighbors:
-            neighbor_probs = [n.traits.subjective_audit_prob for n in audited_neighbors]
-            median_prob = median(neighbor_probs)  # Use statistics.median
-            omega = agent.model.social_influence
-            traits.subjective_audit_prob = (1 - omega) * traits.subjective_audit_prob + omega * median_prob
-
         traits.subjective_audit_prob = clip(traits.subjective_audit_prob, 0.0, 100.0)
 
 
