@@ -148,10 +148,10 @@ def render():
         
         with kpi4:
             st.markdown(f"""
-                <div class="kpi-card" title="Total number of audits conducted throughout the simulation run.">
+                <div class="kpi-card" title="Average number of audits conducted per simulation run.">
                     <div class="kpi-label">Audits Performed</div>
                     <div class="kpi-value">{results.get('total_audits', 0):,}</div>
-                    <div class="kpi-change">Total across simulation</div>
+                    <div class="kpi-change">Average per run</div>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -194,10 +194,10 @@ def render():
         with kpi8:
             total_penalties = results.get('total_penalties', 0)
             st.markdown(f"""
-                <div class="kpi-card" title="Total revenue generated specifically from penalties applied during audits.">
+                <div class="kpi-card" title="Average total revenue generated from penalties per simulation run.">
                     <div class="kpi-label">Correction Yield</div>
                     <div class="kpi-value">{format_number(total_penalties)}</div>
-                    <div class="kpi-change">Penalties collected</div>
+                    <div class="kpi-change">Avg penalties per run</div>
                 </div>
             """, unsafe_allow_html=True)
         

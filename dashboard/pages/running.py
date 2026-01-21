@@ -243,8 +243,8 @@ def run_simulation(params: dict, progress_callback=None):
     avg_four = np.mean(all_four, axis=0).tolist()
     avg_pso = np.mean(all_pso, axis=0).tolist()
     avg_mgtr = np.mean(all_mgtr, axis=0).tolist()
-    total_audits = int(np.sum(all_audits))
-    total_penalties = float(np.sum(all_penalties))
+    total_audits = int(np.mean([sum(run) for run in all_audits]))
+    total_penalties = float(np.mean([sum(run) for run in all_penalties]))
     
     # Build results dict
     results = {
