@@ -43,7 +43,7 @@ class RiskBasedAudit(AuditStrategy):
 class NetworkAudit(AuditStrategy):
     def select(self, agents: list, rate: float):
         n_audits = max(1, int(len(agents) * rate))
-        sorted_agents = sorted(agents, key=lambda a: len(a.neighbors), reverse=True)
+        sorted_agents = sorted(agents, key=lambda a: a.closeness_centrality, reverse=True)
         return sorted_agents[:n_audits]
 
 

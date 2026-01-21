@@ -1,8 +1,8 @@
 {
     "enforcement": {
         "audit_rate": {
-            "private": 0.024,
-            "business": 0.0046
+            "private": 0.01,
+            "business": 0.01
         },
         "audit_strategy": "random",
         "penalty_rate": 3.0,
