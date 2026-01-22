@@ -82,8 +82,8 @@ section[data-testid="stMain"]>div {
 
 /* ===== BACK BUTTON ===== */
 /* Style the back button at top of non-home pages */
-button[id*="back_home"] {
-    background: transparent !important;
+.st-key-back_home .stButton>button {
+    background: white !important;
     border: 1px solid var(--border) !important;
     color: var(--text-medium) !important;
     padding: 8px 16px !important;
@@ -91,7 +91,7 @@ button[id*="back_home"] {
     font-size: 14px !important;
 }
 
-button[id*="back_home"]:hover {
+.st-key-back_home .stButton>button:hover {
     background: var(--surface) !important;
     border-color: var(--primary) !important;
     color: var(--primary) !important;
