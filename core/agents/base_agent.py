@@ -43,6 +43,7 @@ class BaseAgent(mesa.Agent):
         self.neighbors = []
         self.neighbor_ids = []
         self.interventions = {}
+        self.prev_evasion_rate = 0.0
     
     @abstractmethod
     def calculate_opportunity(self):

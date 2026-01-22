@@ -368,14 +368,26 @@ def render():
         
         
         # ===== ACTION BAR =====
-        st.markdown("<div style='height: 24px'></div>", unsafe_allow_html=True)
-        st.divider()
+        # Custom tight separator
+        st.markdown('<hr style="margin-top: 12px; margin-bottom: 8px; border: none; border-top: 1px solid #D1D9E0;">', unsafe_allow_html=True)
         
-        col1, spacer, col2 = st.columns([1, 3, 1])
+        # Custom style for the big action button
+        st.markdown("""
+            <style>
+                div[data-testid="stElementContainer"].st-key-btn_sim_config button {
+                    font-size: 16px !important;
+                    font-weight: 600 !important;
+                    padding: 10px 24px !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
         
-        with col1:
-            st.button("Export Results", use_container_width=True, key="btn_export")
-        with col2:
-            if st.button("New Simulation", type="primary", use_container_width=True, key="btn_new"):
+        # Single primary button aligned to right - reduced width (5:1 ratio)
+        spacer, col_btn = st.columns([5, 1])
+        
+        with col_btn:
+            if st.button("Simulate With Config", type="primary", use_container_width=True, key="btn_sim_config", help="Load these settings and return to simulation setup"):
+                from pages.simulate import load_params_into_state
+                load_params_into_state(params)
                 st.session_state.current_page = "simulate"
                 st.rerun()

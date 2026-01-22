@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 
-
 INTERVENTION_REGISTRY = {}
-
 
 def register_intervention(name: str):
     def decorator(cls):
@@ -10,11 +8,6 @@ def register_intervention(name: str):
         cls.name = name
         return cls
     return decorator
-
-
-def get_registered_interventions():
-    return list(INTERVENTION_REGISTRY.keys())
-
 
 class InterventionStrategy(ABC):
     name: str
@@ -27,7 +20,6 @@ class InterventionStrategy(ABC):
     def apply(self, agent, model, config: dict) -> dict:
         pass
 
-
 class InterventionManager:
     def __init__(self, config: dict):
         self.active = []
@@ -38,9 +30,10 @@ class InterventionManager:
                 self.active.append((cls(), cfg))
     
     def reset_agents(self, agents):
-        registered = get_registered_interventions()
+        registered = list(INTERVENTION_REGISTRY.keys())
+        reset_interventions = {name: None for name in registered}
         for agent in agents:
-            agent.interventions = {name: None for name in registered}
+            agent.interventions = reset_interventions.copy()
     
     def run_all(self, model):
         results = {}

@@ -351,7 +351,7 @@ def render():
             from utils.history import add_history_entry
             
             history_entry = {
-                "date": datetime.now().strftime("%b %d, %Y, %I:%M %p"),
+                "date": datetime.now().strftime("%b %d, %Y, %I:%M:%S %p"),
                 "n_agents": params.get("n_agents", 1000),
                 "n_steps": params.get("n_steps", 50),
                 "total_taxes": results_data["total_taxes"],

@@ -108,19 +108,19 @@ def render():
     st.write("")
     
     # Load history count
-    try:
-        from utils.history import load_history
-        history = load_history()
-        history_count = len(history)
-    except:
-        history_count = 0
+    # try:
+    #     from utils.history import load_history
+    #     history = load_history()
+    #     history_count = len(history)
+    # except:
+    #     history_count = 0
     
-    if history_count > 0:
-        st.markdown(f"""
-            <div style="text-align: center; padding: 24px; background: white; border-radius: 12px; 
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.06); max-width: 400px; margin: 0 auto;">
-                <span style="font-size: 14px; color: #718096;">You have </span>
-                <span style="font-size: 18px; font-weight: 600; color: #01689B;">{history_count}</span>
-                <span style="font-size: 14px; color: #718096;"> saved simulation{'' if history_count == 1 else 's'}</span>
-            </div>
-        """, unsafe_allow_html=True)
+    # if history_count > 0:
+    #     st.markdown(f"""
+    #         <div style="text-align: center; padding: 24px; background: white; border-radius: 12px; 
+    #                     box-shadow: 0 2px 8px rgba(0,0,0,0.06); max-width: 400px; margin: 0 auto;">
+    #             <span style="font-size: 14px; color: #718096;">You have </span>
+    #             <span style="font-size: 18px; font-weight: 600; color: #01689B;">{history_count}</span>
+    #             <span style="font-size: 14px; color: #718096;"> saved simulation{'' if history_count == 1 else 's'}</span>
+    #         </div>
+    #     """, unsafe_allow_html=True)
