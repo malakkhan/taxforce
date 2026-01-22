@@ -35,7 +35,7 @@ def create_chart(data, color="#01689B", y_format="auto", auto_range=False):
     # Convert color to rgb for transparency
     r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
     
-    # Determine hover template based on format
+    # Default hover template
     if y_format == "percent":
         hover_template = "%{y:.1%}<extra></extra>"
     elif y_format == "ratio":
@@ -43,7 +43,32 @@ def create_chart(data, color="#01689B", y_format="auto", auto_range=False):
     else:
         hover_template = "%{y:,.0f}<extra></extra>"
     
-    # Area fill under line (use tonexty for auto_range to avoid fill extending to 0)
+    # Calculate Y-axis range with padding if auto_range
+    y_range = None
+    tick_format = None
+    if auto_range and data:
+        data_min = min(data)
+        data_max = max(data)
+        data_range = data_max - data_min
+        padding = data_range * 0.15  # 15% padding
+        if padding == 0:
+            padding = data_max * 0.1  # If flat line, use 10% of value
+        y_range = [data_min - padding, data_max + padding]
+        
+        # Dynamically adjust precision for percentage format based on data range
+        if y_format == "percent":
+            if data_range < 0.01:  # Less than 1% variation
+                tick_format = ".2%"
+                hover_template = "%{y:.2%}<extra></extra>"
+            elif data_range < 0.05:  # Less than 5% variation
+                tick_format = ".1%"
+                hover_template = "%{y:.1%}<extra></extra>"
+            else:
+                tick_format = ".0%"
+    elif y_format == "percent":
+        tick_format = ".0%"
+    
+    # Area fill under line (disable for auto_range to avoid fill extending to 0)
     fig.add_trace(go.Scatter(
         x=x_vals,
         y=data,
@@ -54,16 +79,6 @@ def create_chart(data, color="#01689B", y_format="auto", auto_range=False):
         hovertemplate=hover_template,
         showlegend=False,
     ))
-    
-    # Calculate Y-axis range with padding if auto_range
-    y_range = None
-    if auto_range and data:
-        data_min = min(data)
-        data_max = max(data)
-        padding = (data_max - data_min) * 0.15  # 15% padding
-        if padding == 0:
-            padding = data_max * 0.1  # If flat line, use 10% of value
-        y_range = [data_min - padding, data_max + padding]
     
     fig.update_layout(
         xaxis=dict(
@@ -78,7 +93,7 @@ def create_chart(data, color="#01689B", y_format="auto", auto_range=False):
             showgrid=True,
             gridcolor="#E8EEF2",
             zeroline=False,
-            tickformat=".0%" if y_format == "percent" else None,
+            tickformat=tick_format,
             range=y_range,
         ),
         plot_bgcolor="white",

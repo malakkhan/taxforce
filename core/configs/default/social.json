@@ -1,7 +1,20 @@
 {
-    "belief_strategy": "hashimzade",
+    "belief_strategy": "custom",
     "belief_strategies": {
         "hashimzade": {
+            "mu": 0.7,
+            "drift": {
+                "private": {
+                    "mean": 20.0,
+                    "step": 1.5
+                },
+                "business": {
+                    "mean": 22.0,
+                    "step": 1.5
+                }
+            }
+        },
+        "custom": {
             "mu": 0.7,
             "drift": {
                 "private": {
@@ -26,10 +39,24 @@
         }
     },
     "trust_update": {
-        "pso_compliant_delta": 0.1,
-        "pso_caught_delta": -0.3,
-        "procedural_fairness": 0.5,
-        "pt_pso_coefficient": 0.74
+        "sigma_trust": 0.69,
+        "p_unfair": 0.30
+    },
+    "pso_update": {
+        "sigma_pso": 0.68,
+        "private": {
+            "phone_prob": 0.527,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.2,
+            "webcare_std": 1.0,
+            "huba_prob": 0.004
+        },
+        "business": {
+            "phone_prob": 0.92,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.5,
+            "webcare_std": 1.0
+        }
     },
     "social": {
         "social_influence": 0.5,

@@ -6,6 +6,7 @@ from .network import build_network
 from .strategies import get_audit_strategy
 from .config import SimulationConfig
 from .simcache import clear_all_caches
+from .interventions import InterventionManager, get_registered_interventions
 from . import updaters
 
 
@@ -31,16 +32,18 @@ class TaxComplianceModel(mesa.Model):
         self.network = build_network(list(self.agents), self.config)
 
         self.current_step = 0
-        self.audited_this_step: set[int] = set()
+        self.intervened_this_step: dict = {}
         self.total_audits = 0  
-        self.penalties_this_step = 0  
+        self.penalties_this_step = 0
+        
+        self.intervention_manager = InterventionManager(config.config_data)
 
         self.datacollector = mesa.DataCollector(
             model_reporters={
                 "Tax_Gap": lambda m: m.calc_tax_gap(),
                 "Compliance_Rate": lambda m: m.calc_compliance_rate(),
                 "Total_Taxes": lambda m: m.calc_total_taxes(),
-                "Audits": lambda m: len(m.audited_this_step),
+                "Audits": lambda m: len(m.intervened_this_step.get("audit", set())),
                 "Avg_Declaration_Ratio": lambda m: m.calc_avg_declaration_ratio(),
                 "Tax_Morale": lambda m: m.calc_tax_morale(),
                 "Avg_FOUR": lambda m: m.calc_avg_four(),
@@ -70,47 +73,29 @@ class TaxComplianceModel(mesa.Model):
     def step(self):
         self.current_step += 1
         self.agents.shuffle_do("step")
-        self.run_audits()
+        self.run_interventions()
         self.update_norms()
         self.datacollector.collect(self)
         clear_all_caches()
 
-    def run_audits(self):
+    def run_interventions(self):
         agents_list = list(self.agents)
-        private = [a for a in agents_list if a.occupation == "private"]
-        business = [a for a in agents_list if a.occupation == "business"]
+        self.intervention_manager.reset_agents(agents_list)
+        results = self.intervention_manager.run_all(self)
         
-        # Apply occupation-specific audit rates
-        rates = self.config.enforcement["audit_rate"]
-        selected = []
-        selected.extend(self.audit_strategy.select(private, rates["private"]))
-        selected.extend(self.audit_strategy.select(business, rates["business"]))
+        self.intervened_this_step = {
+            name: {a.unique_id for a in data["agents"]} 
+            for name, data in results.items()
+        }
+
+        self.penalties_this_step = sum(
+            o.get("penalty", 0) 
+            for data in results.values() 
+            for o in data["outcomes"]
+        )
         
-        self.audited_this_step = {a.unique_id for a in selected}
-        self.penalties_this_step = 0 
-
-        for agent in selected:
-            was_compliant = agent.is_compliant
-            
-            if not was_compliant:
-                evaded_tax = agent.evaded_income * self.tax_rate
-                self.penalties_this_step += evaded_tax * self.penalty_rate
-            
-            self.belief_strategy.update(
-                agent,
-                was_audited=True,
-                was_caught=not was_compliant,
-                audited_neighbors=[]
-            )
-            updaters.update_trust_pso(agent, was_audited=True, was_compliant=was_compliant)
-
-            if hasattr(agent, "update_audit_history"):
-                probs = self.config.enforcement["audit_type_probs"]
-                audit_type = np.random.choice(
-                    ["administratief", "boekenonderzoek"],
-                    p=[probs["admin"], probs["books"]]
-                )
-                agent.update_audit_history(audit_type)
+        for agent in agents_list:
+            self.belief_strategy.update(agent)
 
     def update_norms(self):
         agents_list = list(self.agents)
@@ -124,18 +109,6 @@ class TaxComplianceModel(mesa.Model):
             else:
                 interaction_sets[agent.unique_id] = []
 
-        for agent in agents_list:
-            if agent.unique_id not in self.audited_this_step:
-                interacting = interaction_sets[agent.unique_id]
-                audited_interacting = [n for n in interacting if n.unique_id in self.audited_this_step]
-                self.belief_strategy.update(
-                    agent,
-                    was_audited=False,
-                    was_caught=False,
-                    audited_neighbors=audited_interacting
-                )
-
-        # Belief Update (Subjective Audit Probability)
         omega = self.social_influence
         for agent in agents_list:
             interacting = interaction_sets[agent.unique_id]

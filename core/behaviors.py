@@ -7,13 +7,16 @@ from core.filters import (
     social_influence_filter,
 )
 
+
 class BehaviorStrategy:
     def decide(self, agent) -> float:
         raise NotImplementedError
 
+
 class HonestBehavior(BehaviorStrategy):
     def decide(self, agent):
         return agent.true_income
+
 
 class DishonestBehavior(BehaviorStrategy):
     def decide(self, agent):
@@ -38,10 +41,18 @@ def create_behavior(behavior_type: str) -> BehaviorStrategy:
         raise ValueError(f"Unknown behavior: {behavior_type}")
     return behavior_class()
 
-def assign_behavior(config) -> BehaviorStrategy:
-    distribution = config.behaviors["distribution"]
-    types = list(distribution.keys())
-    probs = list(distribution.values())
+
+def assign_behavior(config, occupation: str) -> BehaviorStrategy:
+    behavior_cfg = config.behaviors
     
-    chosen = np.random.choice(types, p=probs)
-    return create_behavior(chosen)
+    if behavior_cfg.get("override_distribution"):
+        dist = behavior_cfg["distribution"]
+        behavior_type = np.random.choice(list(dist.keys()), p=list(dist.values()))
+    else:
+        params = behavior_cfg["compliance_inclination"][occupation]
+        sampled = np.random.normal(params["mean"], params["std"])
+        score = np.clip(sampled, 1.0, 5.0)
+        behavior_type = "dishonest" if score < params["threshold"] else "honest"
+    
+    return create_behavior(behavior_type)
+

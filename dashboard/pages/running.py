@@ -43,6 +43,7 @@ def build_config_overrides(params: dict) -> dict:
     honest_ratio = params.get("honest_ratio")
     if honest_ratio is not None:
         overrides["behaviors"] = {
+            "override_distribution": True,
             "distribution": {
                 "honest": honest_ratio,
                 "dishonest": 1.0 - honest_ratio,

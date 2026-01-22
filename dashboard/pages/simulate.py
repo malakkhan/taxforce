@@ -27,8 +27,8 @@ def _get_default_values():
         "tax_rate_value": int(_cfg.enforcement["tax_rate"] * 100),
         "penalty_value": _cfg.enforcement["penalty_rate"],
         
-        # Behaviors
-        "compliance_value": int(_cfg.behaviors["distribution"]["honest"] * 100),
+        # Behaviors - use distribution if override exists, else compute from compliance_inclination
+        "compliance_value": int(_cfg.behaviors.get("distribution", {"honest": 0.92})["honest"] * 100),
         
         # Audit rates
         "priv_audit_value": _cfg.enforcement["audit_rate"]["private"] * 100,
@@ -86,6 +86,101 @@ def reset_to_defaults():
     for key, value in DEFAULT_VALUES.items():
         st.session_state[key] = value
 
+
+def synced_slider_input(
+    label: str,
+    key: str,
+    min_value,
+    max_value,
+    default,
+    step,
+    input_min=None,
+    input_max=None,
+    format_str: str = None,
+    help_text: str = None,
+):
+    """
+    Creates a slider + number input pair that stay in sync.
+    Reset button is positioned absolutely to hug the right side of the input.
+    """
+    reset_flag_key = f"{key}_do_reset"
+    if st.session_state.get(reset_flag_key, False):
+        st.session_state[reset_flag_key] = False
+        st.session_state[key] = default
+    
+    if key not in st.session_state:
+        st.session_state[key] = default
+    
+    if isinstance(default, float):
+        default_str = format_str % default if format_str else (f"{default:.2f}" if default != int(default) else str(int(default)))
+    else:
+        default_str = str(default)
+    
+    # Three columns: slider | input | reset button
+    # Tight ratios that keep input and reset close together
+    col_sl, col_in, col_reset = st.columns([4, 0.6, 0.4], gap="small")
+    
+    with col_sl:
+        st.slider(
+            f"{label} Slider",
+            min_value=min_value,
+            max_value=max_value,
+            step=step,
+            key=key,
+            label_visibility="collapsed",
+            help=help_text,
+        )
+    
+    with col_in:
+        input_kwargs = {
+            "label": label,
+            "min_value": input_min if input_min is not None else min_value,
+            "max_value": input_max if input_max is not None else max_value,
+            "value": st.session_state[key],
+            "step": step,
+            "key": f"{key}_input",
+            "label_visibility": "collapsed",
+        }
+        if format_str:
+            input_kwargs["format"] = format_str
+            
+        input_val = st.number_input(**input_kwargs)
+        
+        # Show default value centered below the input
+        # Use negative margin to pull it up closer to input, then position text below
+        st.markdown(
+            f'''<div style="
+                position: relative;
+                width: 90px;
+                height: 15px;
+                margin-top: 4px;
+            ">
+                <span style="
+                    position: absolute;
+                    top: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    font-size: 10px;
+                    color: #718096;
+                    white-space: nowrap;
+                ">Default: {default_str}</span>
+            </div>''',
+            unsafe_allow_html=True
+        )
+        
+        if input_val != st.session_state[key]:
+            st.session_state[key] = max(min_value, min(max_value, input_val))
+            st.rerun()
+    
+    with col_reset:
+        reset_key = f"{key}_reset"
+        # Include default value in tooltip since we removed the text below input
+        if st.button("↻", key=reset_key, help=f"Reset to default: {default_str}"):
+            st.session_state[reset_flag_key] = True
+            st.rerun()
+    
+    return st.session_state[key]
+
 def render():
     """Render the simulation configuration page with tiered settings."""
     
@@ -121,218 +216,82 @@ def render():
             if "run_value" not in st.session_state:
                 st.session_state.run_value = DEFAULT_VALUES["run_value"]
             
-            # Callback functions to sync values
-            def sync_pop_from_slider():
-                st.session_state.pop_value = st.session_state.pop_slider
-            
-            def sync_pop_from_input():
-                st.session_state.pop_value = st.session_state.pop_input
-            
-            def sync_dur_from_slider():
-                st.session_state.dur_value = st.session_state.dur_slider
-            
-            def sync_dur_from_input():
-                st.session_state.dur_value = st.session_state.dur_input
-            
-            def sync_run_from_slider():
-                st.session_state.run_value = st.session_state.run_slider
-            
-            def sync_run_from_input():
-                st.session_state.run_value = st.session_state.run_input
-            
             # --- Population Size ---
             st.markdown("**Population Size** · Number of agents")
-            pop_min, pop_max = 500, 2500
-            col_pop_sl, col_pop_in = st.columns([4, 1])
-            with col_pop_sl:
-                st.slider(
-                    "Population Slider",
-                    min_value=pop_min,
-                    max_value=pop_max,
-                    value=max(pop_min, min(pop_max, st.session_state.pop_value)),
-                    step=50,
-                    key="pop_slider",
-                    label_visibility="collapsed",
-                    on_change=sync_pop_from_slider
-                )
-            with col_pop_in:
-                st.number_input(
-                    "Pop",
-                    min_value=1,
-                    max_value=100000,
-                    value=st.session_state.pop_value,
-                    step=50,
-                    key="pop_input",
-                    label_visibility="collapsed",
-                    on_change=sync_pop_from_input
-                )
-            n_agents = st.session_state.pop_value
+            n_agents = synced_slider_input(
+                label="Pop",
+                key="pop_slider",
+                min_value=500,
+                max_value=2500,
+                default=DEFAULT_VALUES["pop_value"],
+                step=50,
+                input_max=100000,
+            )
              
             # --- Simulation Duration ---
             st.markdown("**Simulation Duration** · Number of steps (years)")
-            dur_min, dur_max = 10, 100
-            col_dur_sl, col_dur_in = st.columns([4, 1])
-            with col_dur_sl:
-                st.slider(
-                    "Duration Slider",
-                    min_value=dur_min,
-                    max_value=dur_max,
-                    value=max(dur_min, min(dur_max, st.session_state.dur_value)),
-                    step=5,
-                    key="dur_slider",
-                    label_visibility="collapsed",
-                    on_change=sync_dur_from_slider
-                )
-            with col_dur_in:
-                st.number_input(
-                    "Dur",
-                    min_value=1,
-                    max_value=1000,
-                    value=st.session_state.dur_value,
-                    step=5,
-                    key="dur_input",
-                    label_visibility="collapsed",
-                    on_change=sync_dur_from_input
-                )
-            n_steps = st.session_state.dur_value
+            n_steps = synced_slider_input(
+                label="Dur",
+                key="dur_slider",
+                min_value=10,
+                max_value=100,
+                default=DEFAULT_VALUES["dur_value"],
+                step=5,
+                input_max=1000,
+            )
             
-            # --- Result Precision ---
-            st.markdown("**Repetitions - Number of simulations to run**")
-            run_min, run_max = 1, 10
-            col_run_sl, col_run_in = st.columns([4, 1])
-            with col_run_sl:
-                st.slider(
-                    "Runs Slider",
-                    min_value=run_min,
-                    max_value=run_max,
-                    value=max(run_min, min(run_max, st.session_state.run_value)),
-                    step=1,
-                    key="run_slider",
-                    label_visibility="collapsed",
-                    on_change=sync_run_from_slider
-                )
-            with col_run_in:
-                st.number_input(
-                    "Runs",
-                    min_value=1,
-                    max_value=100,
-                    value=st.session_state.run_value,
-                    step=1,
-                    key="run_input",
-                    label_visibility="collapsed",
-                    on_change=sync_run_from_input
-                )
-            n_runs = st.session_state.run_value
+            # --- Repetitions ---
+            st.markdown("**Repetitions** · Number of simulations to run")
+            n_runs = synced_slider_input(
+                label="Runs",
+                key="run_slider",
+                min_value=1,
+                max_value=10,
+                default=DEFAULT_VALUES["run_value"],
+                step=1,
+                input_max=100,
+            )
         
         # --- Tax Policy ---
         with st.expander("Tax Policy", expanded=True):
             st.caption("Configure tax rates and penalties applied to taxpayers")
             
-            # Initialize session state for tax policy values
-            if "tax_rate_value" not in st.session_state:
-                st.session_state.tax_rate_value = DEFAULT_VALUES["tax_rate_value"]
-            if "penalty_value" not in st.session_state:
-                st.session_state.penalty_value = DEFAULT_VALUES["penalty_value"]
-            if "compliance_value" not in st.session_state:
-                st.session_state.compliance_value = DEFAULT_VALUES["compliance_value"]
-            
-            # Sync callbacks
-            def sync_tax_from_slider():
-                st.session_state.tax_rate_value = st.session_state.tax_slider
-            def sync_tax_from_input():
-                st.session_state.tax_rate_value = st.session_state.tax_input
-            def sync_penalty_from_slider():
-                st.session_state.penalty_value = st.session_state.penalty_slider
-            def sync_penalty_from_input():
-                st.session_state.penalty_value = st.session_state.penalty_input
-            def sync_compliance_from_slider():
-                st.session_state.compliance_value = st.session_state.compliance_slider
-            def sync_compliance_from_input():
-                st.session_state.compliance_value = st.session_state.compliance_input
-            
             # --- Tax Rate ---
             st.markdown("**Tax Rate** · Income rate (%)")
-            tax_min, tax_max = 10, 60
-            col_tax_sl, col_tax_in = st.columns([4, 1])
-            with col_tax_sl:
-                st.slider(
-                    "Tax Rate Slider",
-                    min_value=tax_min,
-                    max_value=tax_max,
-                    value=max(tax_min, min(tax_max, st.session_state.tax_rate_value)),
-                    step=5,
-                    key="tax_slider",
-                    label_visibility="collapsed",
-                    on_change=sync_tax_from_slider
-                )
-            with col_tax_in:
-                st.number_input(
-                    "Tax",
-                    min_value=0,
-                    max_value=100,
-                    value=st.session_state.tax_rate_value,
-                    step=1,
-                    key="tax_input",
-                    label_visibility="collapsed",
-                    on_change=sync_tax_from_input
-                )
-            tax_rate = st.session_state.tax_rate_value / 100.0
+            tax_rate_raw = synced_slider_input(
+                label="Tax",
+                key="tax_slider",
+                min_value=10,
+                max_value=60,
+                default=DEFAULT_VALUES["tax_rate_value"],
+                step=5,
+                input_max=100,
+            )
+            tax_rate = tax_rate_raw / 100.0
             
             # --- Penalty Rate ---
             st.markdown("**Penalty** · Fine multiplier (x)")
-            pen_min, pen_max = 1.0, 5.0
-            col_pen_sl, col_pen_in = st.columns([4, 1])
-            with col_pen_sl:
-                st.slider(
-                    "Penalty Slider",
-                    min_value=pen_min,
-                    max_value=pen_max,
-                    value=max(pen_min, min(pen_max, st.session_state.penalty_value)),
-                    step=0.5,
-                    key="penalty_slider",
-                    label_visibility="collapsed",
-                    on_change=sync_penalty_from_slider
-                )
-            with col_pen_in:
-                st.number_input(
-                    "Penalty",
-                    min_value=0.1,
-                    max_value=20.0,
-                    value=st.session_state.penalty_value,
-                    step=0.1,
-                    key="penalty_input",
-                    label_visibility="collapsed",
-                    on_change=sync_penalty_from_input
-                )
-            penalty_rate = st.session_state.penalty_value
+            penalty_rate = synced_slider_input(
+                label="Penalty",
+                key="penalty_slider",
+                min_value=1.0,
+                max_value=5.0,
+                default=DEFAULT_VALUES["penalty_value"],
+                step=0.5,
+                input_max=20.0,
+            )
             
             # --- Compliance ---
             st.markdown("**Compliance** · Honest taxpayers (%)")
-            comp_min, comp_max = 0, 100
-            col_hon_sl, col_hon_in = st.columns([4, 1])
-            with col_hon_sl:
-                st.slider(
-                    "Compliance Slider",
-                    min_value=comp_min,
-                    max_value=comp_max,
-                    value=max(comp_min, min(comp_max, st.session_state.compliance_value)),
-                    step=5,
-                    key="compliance_slider",
-                    label_visibility="collapsed",
-                    on_change=sync_compliance_from_slider
-                )
-            with col_hon_in:
-                st.number_input(
-                    "Compliance",
-                    min_value=0,
-                    max_value=100,
-                    value=st.session_state.compliance_value,
-                    step=1,
-                    key="compliance_input",
-                    label_visibility="collapsed",
-                    on_change=sync_compliance_from_input
-                )
-            honest_ratio = st.session_state.compliance_value / 100.0
+            compliance_raw = synced_slider_input(
+                label="Compliance",
+                key="compliance_slider",
+                min_value=0,
+                max_value=100,
+                default=DEFAULT_VALUES["compliance_value"],
+                step=5,
+            )
+            honest_ratio = compliance_raw / 100.0
         
         # --- Enforcement Strategy ---
         with st.expander("Enforcement Strategy", expanded=True):
@@ -354,79 +313,33 @@ def render():
             
             st.write("")
             
-            # Initialize session state for audit rates (store as percentages 0-100)
-            if "priv_audit_value" not in st.session_state:
-                st.session_state.priv_audit_value = DEFAULT_VALUES["priv_audit_value"]
-            if "biz_audit_value" not in st.session_state:
-                st.session_state.biz_audit_value = DEFAULT_VALUES["biz_audit_value"]
-            
-            # Sync callbacks
-            def sync_priv_audit_from_slider():
-                st.session_state.priv_audit_value = st.session_state.priv_audit_slider
-            def sync_priv_audit_from_input():
-                st.session_state.priv_audit_value = st.session_state.priv_audit_input
-            def sync_biz_audit_from_slider():
-                st.session_state.biz_audit_value = st.session_state.biz_audit_slider
-            def sync_biz_audit_from_input():
-                st.session_state.biz_audit_value = st.session_state.biz_audit_input
-            
             # --- Private Audit Rate ---
             st.markdown("**Private Audit Rate** · Individual taxpayer audit probability (%)")
-            priv_min, priv_max = 0.0, 10.0
-            col_priv_sl, col_priv_in = st.columns([4, 1])
-            with col_priv_sl:
-                st.slider(
-                    "Private Rate Slider",
-                    min_value=priv_min,
-                    max_value=priv_max,
-                    value=max(priv_min, min(priv_max, st.session_state.priv_audit_value)),
-                    step=0.1,
-                    key="priv_audit_slider",
-                    label_visibility="collapsed",
-                    on_change=sync_priv_audit_from_slider
-                )
-            with col_priv_in:
-                st.number_input(
-                    "Priv",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=st.session_state.priv_audit_value,
-                    step=0.1,
-                    format="%.1f",
-                    key="priv_audit_input",
-                    label_visibility="collapsed",
-                    on_change=sync_priv_audit_from_input
-                )
-            audit_private = st.session_state.priv_audit_value / 100.0
+            priv_audit_raw = synced_slider_input(
+                label="Priv",
+                key="priv_audit_slider",
+                min_value=0.0,
+                max_value=10.0,
+                default=DEFAULT_VALUES["priv_audit_value"],
+                step=0.1,
+                input_max=100.0,
+                format_str="%.1f",
+            )
+            audit_private = priv_audit_raw / 100.0
             
             # --- Business Audit Rate ---
             st.markdown("**Business Audit Rate** · SME audit probability (%)")
-            biz_min, biz_max = 0.0, 5.0
-            col_biz_sl, col_biz_in = st.columns([4, 1])
-            with col_biz_sl:
-                st.slider(
-                    "Business Rate Slider",
-                    min_value=biz_min,
-                    max_value=biz_max,
-                    value=max(biz_min, min(biz_max, st.session_state.biz_audit_value)),
-                    step=0.01,
-                    key="biz_audit_slider",
-                    label_visibility="collapsed",
-                    on_change=sync_biz_audit_from_slider
-                )
-            with col_biz_in:
-                st.number_input(
-                    "Biz",
-                    min_value=0.0,
-                    max_value=100.0,
-                    value=st.session_state.biz_audit_value,
-                    step=0.01,
-                    format="%.2f",
-                    key="biz_audit_input",
-                    label_visibility="collapsed",
-                    on_change=sync_biz_audit_from_input
-                )
-            audit_business = st.session_state.biz_audit_value / 100.0
+            biz_audit_raw = synced_slider_input(
+                label="Biz",
+                key="biz_audit_slider",
+                min_value=0.0,
+                max_value=5.0,
+                default=DEFAULT_VALUES["biz_audit_value"],
+                step=0.01,
+                input_max=100.0,
+                format_str="%.2f",
+            )
+            audit_business = biz_audit_raw / 100.0
         
         # =====================================================
         # TIER 2: ADVANCED SETTINGS (Collapsed by Default)
