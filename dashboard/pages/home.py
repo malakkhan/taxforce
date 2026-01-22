@@ -9,7 +9,7 @@ def render():
     
     # Page title
     st.markdown("""
-        <div style="text-align: center; padding: 40px 0 48px 0;">
+        <div style="text-align: center; padding: 40px 0 20px 0;">
             <h1 style="font-size: 32px; font-weight: 700; color: #1A1A1A; margin: 0 0 12px 0;">
                 Tax Policy Simulation Dashboard
             </h1>
@@ -18,6 +18,14 @@ def render():
             </p>
         </div>
     """, unsafe_allow_html=True)
+
+    # Download button centered below title
+    col1, col2, col3 = st.columns([1.5, 1, 1.5])
+    with col2:
+        from dashboard.utils.ui import render_download_button
+        render_download_button()
+        
+    st.markdown('<div style="margin-bottom: 28px;"></div>', unsafe_allow_html=True)
     
     # Centered cards area
     spacer1, card_area, spacer2 = st.columns([0.5, 3, 0.5])

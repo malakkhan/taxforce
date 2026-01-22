@@ -841,18 +841,18 @@ def render_metrics_comparison(entries: list[dict], differing_params: list[str]):
         return
 
     metric_defs = [
-        ("total_taxes", "Total Taxes", lambda v: f"€{v/1e6:.1f}M" if v and v >= 1e6 else (f"€{v/1e3:.1f}K" if v and v >= 1e3 else f"€{v:.0f}" if v else "—"), "higher"),
-        ("total_tax_gap", "Tax Gap", lambda v: f"€{v/1e6:.1f}M" if v and v >= 1e6 else (f"€{v/1e3:.1f}K" if v and v >= 1e3 else f"€{v:.0f}" if v else "—"), "lower"),
-        ("final_compliance", "Final Compliance", lambda v: f"{v*100:.1f}%" if v else "—", "higher"),
-        ("final_declaration_ratio", "Declaration Ratio", lambda v: f"{v*100:.1f}%" if v else "—", "higher"),
-        ("final_four", "Final FOUR", lambda v: f"{v*100:.1f}%" if v else "—", "lower"),
-        ("final_tax_morale", "Tax Morale", lambda v: f"{v:.1f}%" if v else "—", "higher"),
-        ("final_mgtr", "Final MGTR", lambda v: f"{v*100:.1f}%" if v else "—", "higher"),
-        ("total_penalties", "Correction Yield", lambda v: f"€{v/1e6:.1f}M" if v and v >= 1e6 else (f"€{v/1e3:.1f}K" if v and v >= 1e3 else f"€{v:.0f}" if v else "—"), "higher"),
+        ("total_taxes", "Total Taxes", lambda v: f"€{v/1e6:.1f}M" if v and v >= 1e6 else (f"€{v/1e3:.1f}K" if v and v >= 1e3 else f"€{v:.0f}" if v else "—"), "higher", "Average sum of Total Taxes collected over the full duration, averaged across runs."),
+        ("total_tax_gap", "Tax Gap", lambda v: f"€{v/1e6:.1f}M" if v and v >= 1e6 else (f"€{v/1e3:.1f}K" if v and v >= 1e3 else f"€{v:.0f}" if v else "—"), "lower", "Average sum of Tax Gap accumulated over the full duration, averaged across runs."),
+        ("final_compliance", "Final Compliance", lambda v: f"{v*100:.1f}%" if v else "—", "higher", "The Compliance Rate at the very last step (averaged across runs)."),
+        ("final_declaration_ratio", "Declaration Ratio", lambda v: f"{v*100:.1f}%" if v else "—", "higher", "The Avg Declaration Ratio at the very last step (averaged across runs)."),
+        ("final_four", "Final FOUR", lambda v: f"{v*100:.1f}%" if v else "—", "lower", "The Avg FOUR at the very last step (averaged across runs)."),
+        ("final_tax_morale", "Tax Morale", lambda v: f"{v:.1f}%" if v else "—", "higher", "The Tax Morale at the very last step (averaged across runs)."),
+        ("final_mgtr", "Final MGTR", lambda v: f"{v*100:.1f}%" if v else "—", "higher", "The MGTR at the very last step (averaged across runs)."),
+        ("total_penalties", "Correction Yield", lambda v: f"€{v/1e6:.1f}M" if v and v >= 1e6 else (f"€{v/1e3:.1f}K" if v and v >= 1e3 else f"€{v:.0f}" if v else "—"), "higher", "Sum of all penalties collected across all steps (averaged across runs)."),
     ]
 
     best_values = {}
-    for key, _, _, direction in metric_defs:
+    for key, _, _, direction, _ in metric_defs:
         vals = [e.get("results", {}).get(key, 0) for e in entries if e.get("results", {}).get(key, 0) > 0]
         if vals:
             best_values[key] = max(vals) if direction == "higher" else min(vals)
@@ -875,7 +875,7 @@ def render_metrics_comparison(entries: list[dict], differing_params: list[str]):
             """, unsafe_allow_html=True)
 
             results = entry.get("results", {})
-            for key, metric_label, formatter, _ in metric_defs:
+            for key, metric_label, formatter, _, help_text in metric_defs:
                 val = results.get(key, 0)
                 is_best = val > 0 and val == best_values.get(key)
                 formatted = formatter(val) if val else "—"
@@ -883,7 +883,8 @@ def render_metrics_comparison(entries: list[dict], differing_params: list[str]):
                 if is_best:
                     st.markdown(f"""
                         <div style="padding:6px 8px; margin-bottom:4px; background:rgba(5, 150, 105, 0.08); 
-                                    border-radius:6px; border:1px solid rgba(5, 150, 105, 0.2); border-left:3px solid #059669;">
+                                    border-radius:6px; border:1px solid rgba(5, 150, 105, 0.2); border-left:3px solid #059669;"
+                                    title="{help_text}">
                             <div style="font-size:9px; color:#718096; text-transform:uppercase;">{metric_label}</div>
                             <div style="font-size:14px; font-weight:600; color:#059669;">{formatted}</div>
                         </div>
@@ -891,14 +892,15 @@ def render_metrics_comparison(entries: list[dict], differing_params: list[str]):
                 else:
                     st.markdown(f"""
                         <div style="padding:6px 8px; margin-bottom:4px; background:white; 
-                                    border-radius:6px; border:1px solid #E8EEF2;">
+                                    border-radius:6px; border:1px solid #E8EEF2;"
+                                    title="{help_text}">
                             <div style="font-size:9px; color:#718096; text-transform:uppercase;">{metric_label}</div>
                             <div style="font-size:14px; font-weight:500; color:#1A1A1A;">{formatted}</div>
                         </div>
                     """, unsafe_allow_html=True)
 
 
-def render_chart(entries: list[dict], data_key: str, title: str, y_format: str = "auto", differing_params: list[str] = None):
+def render_chart(entries: list[dict], data_key: str, title: str, y_format: str = "auto", differing_params: list[str] = None, help_text: str = None):
     """Render a comparison line chart."""
     has_data = any(e.get("results", {}).get(data_key) for e in entries)
     
@@ -906,7 +908,7 @@ def render_chart(entries: list[dict], data_key: str, title: str, y_format: str =
         # st.markdown(f"**{title}**") # REMOVED: Moved into chart for better spacing control
         
         if not has_data:
-            st.markdown(f"**{title}**")
+            st.markdown(f"**{title}**", help=help_text)
             st.caption("No data available")
             return
 
@@ -929,22 +931,32 @@ def render_chart(entries: list[dict], data_key: str, title: str, y_format: str =
         active_series_count = sum(1 for e in entries if e.get("results", {}).get(data_key))
         # Adaptive settings based on series count
         is_multiline_legend = active_series_count > 3
-        margin_top = 75 if is_multiline_legend else 55
+        
+        # Adaptive margin calculations
+        # Base margin for title (approx 30px) + legend (approx 20px) + spacing
+        # If subtitle (help_text) is present, need extra space (approx 20px)
+        base_top_margin = 90 if help_text else 65
+        
+        # If multiline legend, add extra space
+        if is_multiline_legend:
+            base_top_margin += 25
+            
+        margin_top = base_top_margin
         
         fig.update_layout(
             title=dict(
-                text=title,
-                font=dict(size=16, color="#1A1A1A", family="Inter, sans-serif"),
-                x=0,
-                y=1, # Absolute top
+                text=title + (f"<br><span style='font-size:11px;color:#718096;font-weight:400'>{help_text}</span>" if help_text else ""),
+                font=dict(size=14, color="#1A1A1A", family="Inter, sans-serif"),
+                x=0.01, # Slight padding from left edge
+                y=0.99, # Slightly below absolute top to prevent cut-off
                 xanchor="left",
                 yanchor="top",
-                pad=dict(b=20, t=1, l=0) # Minimal top padding
+                pad=dict(b=10, t=10, l=0)
             ),
             paper_bgcolor="white",
             plot_bgcolor="white",
             font=dict(color="#4A5568", family="Inter, sans-serif", size=11),
-            height=300,
+            height=320, # Increased height slightly to accommodate larger margins
             margin=dict(t=margin_top, b=30, l=10, r=10), # Adaptive top margin
             xaxis=dict(title="Progress (%)", gridcolor="#E8EEF2", linecolor="#D1D9E0", tickfont=dict(size=10), zeroline=False),
             yaxis=dict(gridcolor="#E8EEF2", linecolor="#D1D9E0", tickfont=dict(size=10), zeroline=False,
@@ -977,10 +989,16 @@ def render():
     
     with content:
         # Page header - inline with subtitle like iotprof
-        st.markdown('<div style="display:flex; align-items:baseline; gap:16px; margin-bottom:4px;">'
-                    '<span style="font-size:28px; font-weight:700; color:#1A1A1A;">Compare Runs</span>'
-                    '<span style="font-size:14px; color:#718096;">Side-by-side performance comparison</span></div>', 
-                    unsafe_allow_html=True)
+        header_col1, header_col2 = st.columns([3, 1])
+        with header_col1:
+            st.markdown('<div style="display:flex; align-items:baseline; gap:16px; margin-bottom:4px;">'
+                        '<span style="font-size:28px; font-weight:700; color:#1A1A1A;">Compare Runs</span>'
+                        '<span style="font-size:14px; color:#718096;">Side-by-side performance comparison</span></div>', 
+                        unsafe_allow_html=True)
+        with header_col2:
+            from dashboard.utils.ui import render_download_button
+            render_download_button()
+            
         st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:28px;"></div>', unsafe_allow_html=True)
 
         # Load history and sort by date (most recent first)
@@ -1042,29 +1060,29 @@ def render():
 
             col1, col2 = st.columns(2)
             with col1:
-                render_chart(selected_entries, "taxes_over_time", "Tax Revenue Over Time", differing_params=differing_params)
+                render_chart(selected_entries, "taxes_over_time", "Tax Revenue Over Time", differing_params=differing_params, help_text="Total tax revenue collected at each simulation step.")
             with col2:
-                render_chart(selected_entries, "compliance_over_time", "Compliance Rate", y_format="percent", differing_params=differing_params)
+                render_chart(selected_entries, "compliance_over_time", "Compliance Rate", y_format="percent", differing_params=differing_params, help_text="Percentage of agents who are fully compliant (100% declaration) at each step.")
 
             col3, col4 = st.columns(2)
             with col3:
-                render_chart(selected_entries, "tax_gap_over_time", "Tax Gap Over Time", differing_params=differing_params)
+                render_chart(selected_entries, "tax_gap_over_time", "Tax Gap Over Time", differing_params=differing_params, help_text="Total uncollected tax revenue (evaded income × tax rate) at each step.")
             with col4:
-                render_chart(selected_entries, "declaration_ratio_over_time", "Declaration Ratio", y_format="percent", differing_params=differing_params)
+                render_chart(selected_entries, "declaration_ratio_over_time", "Declaration Ratio", y_format="percent", differing_params=differing_params, help_text="Average ratio of (Declared Income / True Income) across all agents at each step.")
 
 
             col5, col6 = st.columns(2)
             with col5:
-                render_chart(selected_entries, "four_over_time", "Fraud Opportunity Use Rate (FOUR)", y_format="percent", differing_params=differing_params)
+                render_chart(selected_entries, "four_over_time", "Fraud Opportunity Use Rate (FOUR)", y_format="percent", differing_params=differing_params, help_text="Average evasion rate among non-honest agents who had an opportunity to evade.")
             with col6:
-                render_chart(selected_entries, "tax_morale_over_time", "Tax Morale Index", differing_params=differing_params)
+                render_chart(selected_entries, "tax_morale_over_time", "Tax Morale Index", differing_params=differing_params, help_text="Average Tax Morale score (0-100%) across population, reflecting intrinsic willingness to comply.")
 
 
             col7, col8 = st.columns(2)
             with col7:
-                render_chart(selected_entries, "mgtr_over_time", "Mean Gross Tax Rate (MGTR)", y_format="percent", differing_params=differing_params)
+                render_chart(selected_entries, "mgtr_over_time", "Mean Gross Tax Rate (MGTR)", y_format="percent", differing_params=differing_params, help_text="Effective tax rate: (Total Revenue + Penalties) / Total True Income.")
             with col8:
-                render_chart(selected_entries, "pso_over_time", "Service Experience (Avg PSO)", differing_params=differing_params)
+                render_chart(selected_entries, "pso_over_time", "Service Experience (Avg PSO)", differing_params=differing_params, help_text="Average Perceived Service Orientation (PSO) towards the tax authority.")
 
         elif len(selected_entries) == 1:
             st.markdown("---")

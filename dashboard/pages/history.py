@@ -23,7 +23,7 @@ def render():
     
     with content:
         # Page header row with title and sort dropdown
-        header_cols = st.columns([6, 2])
+        header_cols = st.columns([5, 2, 1])
         with header_cols[0]:
             st.markdown('<div style="display:flex; align-items:baseline; gap:16px; margin-bottom:0px;">'
                         '<span style="font-size:28px; font-weight:700; color:#1A1A1A;">History</span>'
@@ -32,7 +32,10 @@ def render():
         with header_cols[1]:
             sort_order = st.selectbox("Sort by", ["Most Recent", "Oldest First"], 
                                        label_visibility="collapsed", key="sort")
-        
+        with header_cols[2]:
+            from dashboard.utils.ui import render_download_button
+            render_download_button()
+                                       
         st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:16px; margin-top:-12px;"></div>', unsafe_allow_html=True)
         
         # Load history from disk
@@ -93,28 +96,28 @@ def render():
                         st.markdown(f"""
                             <div style="font-size:11px; color:#718096;">Total Taxes</div>
                             <div style="font-size:15px; font-weight:600; color:#1A1A1A;">{format_number(entry.get('total_taxes', 0))}</div>
-                        """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True, help="Average sum of Total Taxes collected over the full duration, averaged across runs.")
                     
                     with row_cols[2]:
                         tax_gap = entry.get('tax_gap', 0)
                         st.markdown(f"""
                             <div style="font-size:11px; color:#718096;">Tax Gap</div>
                             <div style="font-size:15px; font-weight:600; color:#38A169;">+{format_number(tax_gap)}</div>
-                        """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True, help="Average sum of Tax Gap accumulated over the full duration, averaged across runs.")
                     
                     with row_cols[3]:
                         audits = entry.get('audits', entry.get('interventions', 0))
                         st.markdown(f"""
                             <div style="font-size:11px; color:#718096;">Audits</div>
                             <div style="font-size:15px; font-weight:600; color:#1A1A1A;">{audits:,}</div>
-                        """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True, help="Sum of all audits across all steps (averaged across runs).")
                     
                     with row_cols[4]:
                         compliance = entry.get('compliance', entry.get('tax_morale', 0)) * 100
                         st.markdown(f"""
                             <div style="font-size:11px; color:#718096;">Compliance</div>
                             <div style="font-size:15px; font-weight:600; color:#1A1A1A;">{compliance:.0f}%</div>
-                        """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True, help="The Compliance Rate at the very last step (averaged across runs).")
                     
                     with row_cols[5]:
                         if st.button("View", key=f"view_{idx}", type="primary", use_container_width=True):

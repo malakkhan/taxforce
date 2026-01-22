@@ -125,10 +125,16 @@ def render():
             return
         
         # Page header - title with date inline (like History page)
-        st.markdown(f'<div style="display:flex; align-items:baseline; gap:16px; margin-bottom:4px;">'
-                    f'<span style="font-size:28px; font-weight:700; color:#1A1A1A;">Simulation Results</span>'
-                    f'<span style="font-size:14px; color:#718096;">{datetime.now().strftime("%B %d, %Y at %I:%M %p")}</span></div>', 
-                    unsafe_allow_html=True)
+        header_col1, header_col2 = st.columns([3, 1])
+        with header_col1:
+            st.markdown(f'<div style="display:flex; align-items:baseline; gap:16px; margin-bottom:4px;">'
+                        f'<span style="font-size:28px; font-weight:700; color:#1A1A1A;">Simulation Results</span>'
+                        f'<span style="font-size:14px; color:#718096;">{datetime.now().strftime("%B %d, %Y at %I:%M %p")}</span></div>', 
+                        unsafe_allow_html=True)
+        with header_col2:
+            from dashboard.utils.ui import render_download_button
+            render_download_button()
+            
         st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:24px;"></div>', unsafe_allow_html=True)
         
         # ===== KPI CARDS ROW =====
@@ -136,39 +142,39 @@ def render():
     
         with kpi1:
             st.markdown(f"""
-                <div class="kpi-card" title="Total tax revenue collected from declared income across all agents throughout the simulation.">
+                <div class="kpi-card">
                     <div class="kpi-label">Total Tax Revenue</div>
                     <div class="kpi-value">{format_number(results.get('total_taxes', 0))}</div>
                     <div class="kpi-change positive">Collected</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True, help="Average sum of Total Taxes collected over the full duration, averaged across runs.")
         
         with kpi2:
             st.markdown(f"""
-                <div class="kpi-card" title="Total calculated tax gap (evaded income × tax rate) accumulated across all agents and steps.">
+                <div class="kpi-card">
                     <div class="kpi-label">Total Tax Gap</div>
                     <div class="kpi-value">{format_number(results.get('total_tax_gap', 0))}</div>
                     <div class="kpi-change negative">Cumulative uncollected</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True, help="Average sum of Tax Gap accumulated over the full duration, averaged across runs.")
         
         with kpi3:
             st.markdown(f"""
-                <div class="kpi-card" title="Percentage of agents who were fully compliant (100% declaration) in the final simulation step.">
+                <div class="kpi-card">
                     <div class="kpi-label">Final Compliance</div>
                     <div class="kpi-value">{format_percentage(results.get('final_compliance', 0))}</div>
                     <div class="kpi-change positive">Fully compliant agents</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True, help="The Compliance Rate at the very last step (averaged across runs).")
         
         with kpi4:
             st.markdown(f"""
-                <div class="kpi-card" title="Average number of audits conducted per simulation run.">
+                <div class="kpi-card">
                     <div class="kpi-label">Audits Performed</div>
                     <div class="kpi-value">{results.get('total_audits', 0):,}</div>
                     <div class="kpi-change">Average per run</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True, help="Sum of all audits across all steps (averaged across runs).")
         
         # Small spacing between KPI rows
         st.markdown("<div style='height: 16px'></div>", unsafe_allow_html=True)
@@ -179,42 +185,42 @@ def render():
         with kpi5:
             final_four = results.get('final_four', 0)
             st.markdown(f"""
-                <div class="kpi-card" title="Fraud Opportunity Use Rate: Average evasion rate among non-honest agents who had an opportunity to evade.">
+                <div class="kpi-card">
                     <div class="kpi-label">Final FOUR</div>
                     <div class="kpi-value">{format_percentage(final_four)}</div>
                     <div class="kpi-change">Fraud opportunity use</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True, help="The Avg FOUR at the very last step (averaged across runs).")
         
         with kpi6:
             final_morale = results.get('final_tax_morale', 0)
             st.markdown(f"""
-                <div class="kpi-card" title="Average intrinsic willingness to pay taxes (0-100%), weighted by social norms, societal norms, PSO, and trust.">
+                <div class="kpi-card">
                     <div class="kpi-label">Tax Morale</div>
                     <div class="kpi-value">{final_morale:.1f}%</div>
                     <div class="kpi-change positive">Intrinsic willingness</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True, help="The Tax Morale at the very last step (averaged across runs).")
         
         with kpi7:
             final_mgtr = results.get('final_mgtr', 0)
             st.markdown(f"""
-                <div class="kpi-card" title="Mean Gross Tax Rate: The effective tax burden (Taxes + Penalties) divided by True Income in the final step.">
+                <div class="kpi-card">
                     <div class="kpi-label">Final MGTR</div>
                     <div class="kpi-value">{format_percentage(final_mgtr)}</div>
                     <div class="kpi-change positive">Effective tax rate</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True, help="The MGTR at the very last step (averaged across runs).")
         
         with kpi8:
             total_penalties = results.get('total_penalties', 0)
             st.markdown(f"""
-                <div class="kpi-card" title="Average total revenue generated from penalties per simulation run.">
+                <div class="kpi-card">
                     <div class="kpi-label">Correction Yield</div>
                     <div class="kpi-value">{format_number(total_penalties)}</div>
                     <div class="kpi-change">Avg penalties per run</div>
                 </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True, help="Sum of all penalties collected across all steps (averaged across runs).")
         
         # Spacing
         st.markdown("<div style='height: 32px'></div>", unsafe_allow_html=True)
@@ -224,18 +230,18 @@ def render():
             stat_cols = st.columns(4, gap="medium")
             
             with stat_cols[0]:
-                st.metric("Initial Compliance", format_percentage(results.get('initial_compliance', 0)), help="Percentage of fully compliant agents at the start of the simulation.")
+                st.metric("Initial Compliance", format_percentage(results.get('initial_compliance', 0)), help="The Compliance Rate at step 0 (averaged across runs).")
             with stat_cols[1]:
-                st.metric("Max Compliance", format_percentage(results.get('max_compliance', 0)), help="The highest compliance rate achieved during any single step of the simulation.")
+                st.metric("Max Compliance", format_percentage(results.get('max_compliance', 0)), help="The highest single-step Compliance Rate observed during a run (averaged across runs).")
             with stat_cols[2]:
-                st.metric("Final Declaration Ratio", format_percentage(results.get('final_declaration_ratio', 1)), help="Average ratio of (Declared Income / True Income) across all agents in the final step.")
+                st.metric("Final Declaration Ratio", format_percentage(results.get('final_declaration_ratio', 1)), help="The Avg Declaration Ratio at the very last step (averaged across runs).")
             with stat_cols[3]:
                 # Calculate efficiency ratio
                 total_taxes = results.get('total_taxes', 0)
                 tax_gap = results.get('tax_gap', 0)
                 theoretical = total_taxes + tax_gap
                 efficiency = total_taxes / theoretical if theoretical > 0 else 1.0
-                st.metric("Collection Efficiency", format_percentage(efficiency), help="Ratio of Total Taxes Collected / (Total Taxes + Tax Gap). Represents the percentage of theoretical potential revenue that was actually captured.")
+                st.metric("Collection Efficiency", format_percentage(efficiency), help="Ratio of Total Tax Revenue / (Total Tax Revenue + Total Tax Gap). Represents the % of potential revenue captured (averaged across runs).")
         
         # ===== SIMULATION PARAMETERS (moved up for visibility) =====
         with st.expander("Simulation Parameters Used"):
