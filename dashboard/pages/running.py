@@ -38,6 +38,14 @@ def build_config_overrides(params: dict) -> dict:
         },
         "audit_strategy": params.get("audit_strategy"),
     }
+
+    # Audit Depth (New)
+    audit_books_prob = params.get("audit_depth_books")
+    if audit_books_prob is not None:
+        overrides["enforcement"]["audit_type_probs"] = {
+            "books": audit_books_prob,
+            "admin": 1.0 - audit_books_prob
+        }
     
     # Behavior distribution
     honest_ratio = params.get("honest_ratio")
@@ -60,54 +68,78 @@ def build_config_overrides(params: dict) -> dict:
     # Social dynamics
     overrides["social"] = {
         "social_influence": params.get("social_influence"),
-        "pso_boost": params.get("pso_boost"),
-        "trust_boost": params.get("trust_boost"),
+        # Legacy boosts deprecated, but kept just in case
+        "pso_boost": params.get("pso_boost", 0.0),
+        "trust_boost": params.get("trust_boost", 0.0),
     }
+
+    # Service & Transparency Update (New)
+    pso_overrides = {}
+    
+    # Phone Satisfaction (apply to both sectors)
+    phone_sat = params.get("phone_sat")
+    if phone_sat is not None:
+        # Convert 0-100 to probability
+        prob = phone_sat / 100.0
+        pso_overrides.setdefault("private", {})["phone_satisfied_prob"] = prob
+        pso_overrides.setdefault("business", {})["phone_satisfied_prob"] = prob
+        
+    # Webcare Quality (apply to both sectors)
+    web_qual = params.get("web_qual")
+    if web_qual is not None:
+        pso_overrides.setdefault("private", {})["webcare_mean"] = web_qual
+        pso_overrides.setdefault("business", {})["webcare_mean"] = web_qual
+
+    if pso_overrides:
+        overrides["pso_update"] = pso_overrides
+
+    # Transparency (Trust)
+    is_transparent = params.get("transparency")
+    if is_transparent is not None:
+        # If transparent, significantly reduce the chance of perceiving audits as unfair
+        # Default is 0.30, Transparency campaign reduces it to 0.10
+        overrides["trust_update"] = {"p_unfair": 0.10 if is_transparent else 0.30}
     
     # Norm Update Scales
     norm_update = params.get("norm_update", {})
     if norm_update:
         overrides["norm_update"] = norm_update
     
+    # Helper to clean trait dicts
+    def clean_traits(t_dict):
+        cleaned = {}
+        for k, v in t_dict.items():
+            if k.endswith("_mean"):
+                key = k.replace("_mean", "")  # e.g. pso_mean -> pso
+                # Map shorthand to full config keys
+                key_map = {
+                    "pso": "perceived_service_orientation",
+                    "trust": "perceived_trustworthiness",
+                    "personal_norms": "personal_norms",
+                    "social_norms": "social_norms",
+                    "societal_norms": "societal_norms",
+                    "subjective_audit_prob": "subjective_audit_prob",
+                    "risk_aversion": "risk_aversion"
+                }
+                actual_key = key_map.get(key, key)
+                cleaned[actual_key] = {"mean": v}
+        return cleaned
+
     # Traits - Private
     traits_private = params.get("traits_private", {})
     if traits_private:
-        priv_traits = {}
-        if "personal_norms_mean" in traits_private:
-            priv_traits["personal_norms"] = {"mean": traits_private["personal_norms_mean"]}
-        if "social_norms_mean" in traits_private:
-            priv_traits["social_norms"] = {"mean": traits_private["social_norms_mean"]}
-        if "societal_norms_mean" in traits_private:
-            priv_traits["societal_norms"] = {"mean": traits_private["societal_norms_mean"]}
-        if "pso_mean" in traits_private:
-            priv_traits["perceived_service_orientation"] = {"mean": traits_private["pso_mean"]}
-        if "trust_mean" in traits_private:
-            priv_traits["perceived_trustworthiness"] = {"mean": traits_private["trust_mean"]}
-        if "subjective_audit_prob_mean" in traits_private:
-            priv_traits["subjective_audit_prob"] = {"mean": traits_private["subjective_audit_prob_mean"]}
-        
-        if priv_traits:
-            overrides.setdefault("traits", {})["private"] = priv_traits
+        overrides.setdefault("traits", {})["private"] = clean_traits(traits_private)
     
     # Traits - Business
     traits_business = params.get("traits_business", {})
     if traits_business:
-        biz_traits = {}
-        if "personal_norms_mean" in traits_business:
-            biz_traits["personal_norms"] = {"mean": traits_business["personal_norms_mean"]}
-        if "social_norms_mean" in traits_business:
-            biz_traits["social_norms"] = {"mean": traits_business["social_norms_mean"]}
-        if "societal_norms_mean" in traits_business:
-            biz_traits["societal_norms"] = {"mean": traits_business["societal_norms_mean"]}
-        if "pso_mean" in traits_business:
-            biz_traits["perceived_service_orientation"] = {"mean": traits_business["pso_mean"]}
-        if "trust_mean" in traits_business:
-            biz_traits["perceived_trustworthiness"] = {"mean": traits_business["trust_mean"]}
-        if "subjective_audit_prob_mean" in traits_business:
-            biz_traits["subjective_audit_prob"] = {"mean": traits_business["subjective_audit_prob_mean"]}
-        
-        if biz_traits:
-            overrides.setdefault("traits", {})["business"] = biz_traits
+        overrides.setdefault("traits", {})["business"] = clean_traits(traits_business)
+
+    # Risk Aversion (New - Apply to both)
+    risk_aversion = params.get("risk_aversion")
+    if risk_aversion is not None:
+         overrides.setdefault("traits", {}).setdefault("private", {})["risk_aversion"] = {"mean": risk_aversion}
+         overrides.setdefault("traits", {}).setdefault("business", {})["risk_aversion"] = {"mean": risk_aversion}
     
     # Private income
     if "income_mean" in traits_private:
