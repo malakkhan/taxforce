@@ -491,3 +491,65 @@ hr {
     border-top: 1px solid var(--border);
     margin: 24px 0;
 }
+
+/* ===== RESET BUTTON ICON ===== */
+/* Minimal icon button for resetting slider values to defaults */
+
+/* Target the button container column to reduce gap */
+[data-testid="stHorizontalBlock"]>div:last-child:has(button[id*="_reset"]) {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Target the button wrapper divs */
+.stButton:has(button[id*="_reset"]) {
+    margin-top: 8px !important;
+}
+
+/* Use very specific selectors to override the default button styles */
+/* Target emotion-cache classes that Streamlit generates */
+button[id*="_reset"][class*="st-emotion-cache"],
+.stButton>button[id*="_reset"],
+.stButton>button[id*="_reset"]:hover,
+.stButton>button[id*="_reset"]:focus,
+.stButton>button[id*="_reset"]:active,
+[data-testid="stButton"]>button[id*="_reset"],
+[data-testid="stButton"]>button[id*="_reset"]:hover,
+[data-testid="stButton"]>button[id*="_reset"]:focus,
+[data-testid="stButton"]>button[id*="_reset"]:active,
+button[id*="_reset"],
+button[id*="_reset"]:hover,
+button[id*="_reset"]:focus,
+button[id*="_reset"]:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    border-width: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: #A0AEC0 !important;
+    font-size: 18px !important;
+    padding: 4px !important;
+    min-height: unset !important;
+    height: auto !important;
+    width: auto !important;
+    min-width: unset !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    transition: color 0.15s ease, transform 0.15s ease !important;
+    border-radius: 0 !important;
+}
+
+button[id*="_reset"][class*="st-emotion-cache"]:hover,
+.stButton>button[id*="_reset"]:hover,
+[data-testid="stButton"]>button[id*="_reset"]:hover,
+button[id*="_reset"]:hover {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #01689B !important;
+    transform: rotate(-45deg) !important;
+    border: none !important;
+}
+
+/* Slider-specific reset button styling is in simulate.css */

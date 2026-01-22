@@ -23,7 +23,7 @@ def render():
     spacer1, card_area, spacer2 = st.columns([0.5, 3, 0.5])
     
     with card_area:
-        col1, col2, col3 = st.columns(3, gap="large")
+        col1, col2, col3 = st.columns(3, gap="small")
         
         with col1:
             # Original card design inside a container

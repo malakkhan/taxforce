@@ -35,13 +35,14 @@ class BaseAgent(mesa.Agent):
     def __init__(self, model, occupation):
         super().__init__(model)
         self.occupation = occupation
-        self.behavior = assign_behavior(model.config)
+        self.behavior = assign_behavior(model.config, occupation)
         self.traits = create_traits(occupation, model.config)
         
         self.true_income = 0.0
         self.declared_income = 0.0
         self.neighbors = []
         self.neighbor_ids = []
+        self.interventions = {}
     
     @abstractmethod
     def calculate_opportunity(self):

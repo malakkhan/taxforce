@@ -1,0 +1,75 @@
+/* ===== SIMULATE PAGE - SLIDER RESET BUTTON LAYOUT ===== */
+/* Only affects horizontal blocks containing sliders */
+
+/* Make ALL number inputs have equal fixed width */
+/* Target the number input container in slider rows specifically */
+/* FIX: Override align-items: flex-end that pushes input down */
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"]) [data-testid="stNumberInput"] {
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+    box-sizing: border-box !important;
+    align-items: flex-start !important;
+    padding-bottom: 0 !important;
+}
+
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"]) [data-testid="stNumberInput"] input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Reset button column - match the top padding from the input column */
+/* Set to 24px to match the input container's computed padding */
+/* Target the stVerticalBlock inside the last column (reset button column) */
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"])>div:last-child [data-testid="stVerticalBlock"] {
+    padding-top: 24px !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 0 !important;
+    gap: 0 !important;
+}
+
+/* Also target the inner wrapper */
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"])>div:last-child [data-testid="stVerticalBlockBorderWrapper"]>div {
+    padding: 0 !important;
+    padding-top: 24px !important;
+}
+
+/* Reset button column container - remove left padding */
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"])>div:last-child {
+    display: flex !important;
+    align-items: flex-start !important;
+    min-width: 45px !important;
+    flex-shrink: 0 !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Input column - remove ALL right padding */
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"])>div:nth-last-child(2) [data-testid="stVerticalBlock"] {
+    padding-right: 0 !important;
+}
+
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"])>div:nth-last-child(2) [data-testid="stVerticalBlockBorderWrapper"]>div {
+    padding-right: 0 !important;
+}
+
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"])>div:nth-last-child(2) {
+    min-width: 95px !important;
+    flex-shrink: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Slider column - allow shrinking */
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"])>div:first-child {
+    flex-shrink: 1 !important;
+    min-width: 100px !important;
+}
+
+/* CRITICAL: Prevent columns from wrapping to new lines on small screens */
+/* The slider shrinks, input and reset stay fixed width */
+/* Also reduce the gap between columns to bring reset button closer */
+[data-testid="stHorizontalBlock"]:has([data-testid="stSlider"]) {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+}
