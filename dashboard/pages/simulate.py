@@ -228,28 +228,32 @@ def render():
             st.write("")
 
             # --- Population Size ---
-            st.markdown("**Agents** (Population Size)")
+            # --- Population Size ---
+            st.markdown("**Population Size** · Number of agents", help="Literature uses population sizes from 1000 to 5000. Larger populations obey statistical properties better but run slower.")
             n_agents = synced_slider_input(
                 label="Pop", key="pop_slider",
                 min_value=500, max_value=2500,
                 default=DEFAULT_VALUES["pop_value"],
-                step=50, input_max=100000,
+                step=50,
+                input_max=100000,
+                help_text="Literature uses population sizes from 1000 to 5000. Larger populations obey statistical properties better but run slower."
             )
-            
-            st.write("")
-            
-            # Use full width for these to avoid nested column breaking
-            st.markdown("**Duration** (Years)")
+             
+            # --- Simulation Duration ---
+            # --- Simulation Duration ---
+            st.markdown("**Simulation Duration** · Number of steps (years)", help="Literature uses timesteps in the range of 50 to 100. Each timestep represents one fiscal year.")
             n_steps = synced_slider_input(
                 label="Dur", key="dur_slider",
                 min_value=10, max_value=100,
                 default=DEFAULT_VALUES["dur_value"],
-                step=5, input_max=1000,
+                step=5,
+                input_max=1000,
+                help_text="Literature uses timesteps in the range of 50 to 100. Each timestep represents one fiscal year."
             )
             
-            st.write("")
-            
-            st.markdown("**Repetitions** (Runs)")
+            # --- Repetitions ---
+            # --- Repetitions ---
+            st.markdown("**Repetitions** · Number of simulations to run", help="The simulation can be repeated numerous times to provide aggregate scores across various random scenarios.")
             n_runs = synced_slider_input(
                 label="Runs", key="run_slider",
                 min_value=1, max_value=10,
@@ -309,7 +313,9 @@ def render():
                     "risk_based": "Risk-Based · Focus on high-risk profiles",
                     "network": "Network · Target central nodes"
                 }.get(x, x),
-                key="sel_audit"
+                key="sel_audit",
+                label_visibility="collapsed",
+                help="Choose how agents are selected for audit: Random (uniform), Risk-Based (top risk scores), or Network (closeness centrality)."
             )
 
             st.write("")
@@ -376,15 +382,18 @@ def render():
             def sync_biz_ratio_from_input():
                 st.session_state.biz_ratio_value = st.session_state.biz_ratio_input
             
-            st.markdown("Self-Employed Ratio (%)")
+            st.markdown("**Private/SME Ratio** · Percentage of SMEs (%)", help="Approximately 0.134% of Dutch labor force is self-employed as per CBS 2024 data. Default of 10%.")
             col_biz_sl, col_biz_in = st.columns([4, 1])
             with col_biz_sl:
                 st.slider(
                     "Business Ratio Slider",
                     min_value=0, max_value=100,
                     value=max(0, min(100, int(st.session_state.biz_ratio_value))),
-                    step=1, key="biz_ratio_slider",
-                    label_visibility="collapsed", on_change=sync_biz_ratio_from_slider
+                    step=1,
+                    key="biz_ratio_slider",
+                    label_visibility="collapsed",
+                    on_change=sync_biz_ratio_from_slider,
+                    help="Approximately 0.134% of Dutch labor force is self-employed as per CBS 2024 data. Default of 10%."
                 )
             with col_biz_in:
                 st.number_input(
