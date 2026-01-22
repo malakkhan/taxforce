@@ -6,7 +6,7 @@ from .network import build_network
 from .strategies import get_audit_strategy
 from .config import SimulationConfig
 from .simcache import clear_all_caches
-from .interventions import InterventionManager, get_registered_interventions
+from .interventions import InterventionManager
 from . import updaters
 
 
@@ -72,6 +72,10 @@ class TaxComplianceModel(mesa.Model):
 
     def step(self):
         self.current_step += 1
+        
+        for agent in self.agents:
+            agent.prev_evasion_rate = agent.get_evasion_rate()
+        
         self.agents.shuffle_do("step")
         self.run_interventions()
         self.update_norms()

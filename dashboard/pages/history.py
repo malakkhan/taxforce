@@ -25,7 +25,7 @@ def render():
         # Page header row with title and sort dropdown
         header_cols = st.columns([6, 2])
         with header_cols[0]:
-            st.markdown('<div style="display:flex; align-items:baseline; gap:16px;">'
+            st.markdown('<div style="display:flex; align-items:baseline; gap:16px; margin-bottom:0px;">'
                         '<span style="font-size:28px; font-weight:700; color:#1A1A1A;">History</span>'
                         '<span style="font-size:14px; color:#718096;">View past simulation results</span></div>', 
                         unsafe_allow_html=True)
@@ -33,7 +33,7 @@ def render():
             sort_order = st.selectbox("Sort by", ["Most Recent", "Oldest First"], 
                                        label_visibility="collapsed", key="sort")
         
-        st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:16px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:16px; margin-top:-12px;"></div>', unsafe_allow_html=True)
         
         # Load history from disk
         try:

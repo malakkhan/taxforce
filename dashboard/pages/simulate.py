@@ -21,33 +21,36 @@ def _get_default_values():
         # Simulation
         "pop_value": _cfg.simulation["n_agents"],
         "dur_value": _cfg.simulation["n_steps"],
-        "run_value": 1,  # n_runs not in config, keep hardcoded
+        "run_value": 1, 
         
-        # Tax policy
-        "tax_rate_value": int(_cfg.enforcement["tax_rate"] * 100),
-        "penalty_value": _cfg.enforcement["penalty_rate"],
-        
-        # Behaviors - use distribution if override exists, else compute from compliance_inclination
+        # Behaviors
         "compliance_value": int(_cfg.behaviors.get("distribution", {"honest": 0.92})["honest"] * 100),
         
-        # Audit rates
+        # Enforcement Strategy
         "priv_audit_value": _cfg.enforcement["audit_rate"]["private"] * 100,
         "biz_audit_value": _cfg.enforcement["audit_rate"]["business"] * 100,
+        "audit_depth_value": 0.28 * 100, # Default books prob
         
-        # Population
+        # Service & Trust (New)
+        "phone_sat_value": 80.0, # 80% default
+        "web_qual_value": 3.2, # 3.2/5 default
+        "transparency_value": False, # Default off (p_unfair = 0.3)
+        
+        # External Environment (Govt)
+        "tax_rate_value": int(_cfg.enforcement["tax_rate"] * 100),
+        "penalty_value": _cfg.enforcement["penalty_rate"],
         "biz_ratio_value": _cfg.simulation["business_ratio"] * 100,
         
-        # Network
+        # Expert - Network
         "homophily_value": _cfg.network["homophily"],
         "degree_mean_value": _cfg.network["degree_mean"],
         "degree_std_value": _cfg.network["degree_std"],
-        
-        # Social
         "social_influence_value": _cfg.social["social_influence"],
-        "pso_boost_value": _cfg.social["pso_boost"],
-        "trust_boost_value": _cfg.social["trust_boost"],
         
-        # Norm Update Scales
+        # Expert - Risk & Traits
+        "risk_aversion_value": _cfg.traits["private"]["risk_aversion"]["mean"],
+        
+        # Expert - Norms
         "social_norm_scale_priv": _cfg.norm_update["social_norm_scale"]["private"],
         "social_norm_scale_biz": _cfg.norm_update["social_norm_scale"]["business"],
         "societal_norm_scale_priv": _cfg.norm_update["societal_norm_scale"]["private"],
@@ -189,41 +192,47 @@ def render():
     
     with content:
         # Page header
-        st.markdown("""
-            <div style="margin-bottom: 24px;">
-                <h1 style="font-size: 28px; font-weight: 700; color: #1A1A1A; margin: 0 0 8px 0;">
-                    Configure Simulation
-                </h1>
-                <p style="font-size: 14px; color: #718096; margin: 0;">
-                    Adjust parameters and run your tax policy simulation
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
+        header_col, reset_col = st.columns([5, 1])
+        
+        with header_col:
+            st.markdown("""
+                <div style="display:flex; align-items:baseline; gap:16px; padding-top: 10px; margin-bottom: 0px;">
+                    <span style="font-size: 28px; font-weight: 700; color: #1A1A1A;">
+                        Configure Simulation
+                    </span>
+                    <span style="font-size: 14px; color: #718096;">
+                        Adjust parameters and run simulation
+                    </span>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        with reset_col:
+            if st.button("Reset Defaults", use_container_width=True, key="btn_reset_header"):
+                reset_to_defaults()
+                st.rerun()
+        
+        # Horizontal separator
+        st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:24px; margin-top:-12px;"></div>', unsafe_allow_html=True)
         
         # =====================================================
-        # TIER 1: ESSENTIAL SETTINGS (Expanded by Default)
+        # 1. SETUP - Always Visible
         # =====================================================
         
-        # --- Scenario Settings ---
-        with st.expander("Scenario Settings", expanded=True):
-            st.caption("Core parameters that control simulation scale and precision")
-            
-            # Initialize session state for synced values from DEFAULT_VALUES
-            if "pop_value" not in st.session_state:
-                st.session_state.pop_value = DEFAULT_VALUES["pop_value"]
-            if "dur_value" not in st.session_state:
-                st.session_state.dur_value = DEFAULT_VALUES["dur_value"]
-            if "run_value" not in st.session_state:
-                st.session_state.run_value = DEFAULT_VALUES["run_value"]
-            
+        # Initialize session state for synced values
+        if "pop_value" not in st.session_state:
+            reset_to_defaults()
+
+        with st.container(border=True):
+            st.markdown("### Simulation Setup")
+            # st.caption("Define the scale and duration of the simulation")
+            st.write("")
+
             # --- Population Size ---
             # --- Population Size ---
             st.markdown("**Population Size** · Number of agents", help="Literature uses population sizes from 1000 to 5000. Larger populations obey statistical properties better but run slower.")
             n_agents = synced_slider_input(
-                label="Pop",
-                key="pop_slider",
-                min_value=500,
-                max_value=2500,
+                label="Pop", key="pop_slider",
+                min_value=500, max_value=2500,
                 default=DEFAULT_VALUES["pop_value"],
                 step=50,
                 input_max=100000,
@@ -234,10 +243,8 @@ def render():
             # --- Simulation Duration ---
             st.markdown("**Simulation Duration** · Number of steps (years)", help="Literature uses timesteps in the range of 50 to 100. Each timestep represents one fiscal year.")
             n_steps = synced_slider_input(
-                label="Dur",
-                key="dur_slider",
-                min_value=10,
-                max_value=100,
+                label="Dur", key="dur_slider",
+                min_value=10, max_value=100,
                 default=DEFAULT_VALUES["dur_value"],
                 step=5,
                 input_max=1000,
@@ -248,245 +255,128 @@ def render():
             # --- Repetitions ---
             st.markdown("**Repetitions** · Number of simulations to run", help="The simulation can be repeated numerous times to provide aggregate scores across various random scenarios.")
             n_runs = synced_slider_input(
-                label="Runs",
-                key="run_slider",
-                min_value=1,
-                max_value=10,
+                label="Runs", key="run_slider",
+                min_value=1, max_value=10,
                 default=DEFAULT_VALUES["run_value"],
-                step=1,
-                input_max=100,
-                help_text="The simulation can be repeated numerous times to provide aggregate scores across various random scenarios."
+                step=1, input_max=100,
             )
-        
 
-            # --- Compliance ---
-            st.markdown("**Baseline Initial Compliance** · Honest taxpayers (%)", help="Percentage of agents initialized as 'honest' (Likert score > 3). Based on means: Private 3.87, Business 4.07. (Gangl et al 2013)")
-            compliance_raw = synced_slider_input(
-                label="Compliance",
-                key="compliance_slider",
-                min_value=0,
-                max_value=100,
-                default=DEFAULT_VALUES["compliance_value"],
-                step=5,
-                help_text="Percentage of agents initialized as 'honest' (Likert score > 3). Based on means: Private 3.87, Business 4.07. (Gangl et al 2013)"
-            )
-            honest_ratio = compliance_raw / 100.0
-        
-        # --- Tax Policy ---
-        with st.expander("Tax Policy", expanded=True):
-            st.caption("Configure tax rates and penalties applied to taxpayers")
+        st.markdown("<div style='height: 12px'></div>", unsafe_allow_html=True)
+
+        # =====================================================
+        # 2. TAX AUTHORITY STRATEGY (The Controls)
+        # =====================================================
+        with st.expander("Tax Authority Strategy", expanded=True):
+            # st.caption("Operational controls available to the Tax Authority")
             
-            # --- Tax Rate ---
-            # --- Tax Rate ---
-            st.markdown("**Tax Rate** · Income rate (%)", help="Uniform tax rate for all agents (Default: 0.3). Also acts as the base for fine calculation.")
-            tax_rate_raw = synced_slider_input(
-                label="Tax",
-                key="tax_slider",
-                min_value=10,
-                max_value=60,
-                default=DEFAULT_VALUES["tax_rate_value"],
-                step=5,
-                input_max=100,
-                help_text="Uniform tax rate for all agents (Default: 0.3). Also acts as the base for fine calculation."
-            )
-            tax_rate = tax_rate_raw / 100.0
+            # --- Enforcement Intensity ---
+            st.markdown("#### Enforcement Intensity")
             
-            # --- Penalty Rate ---
-            # --- Penalty Rate ---
-            st.markdown("**Penalty** · Fine multiplier (x)", help="Multiplier on tax rate for fines (Default: 3). Fine = fine rate * tax rate * undeclared amount.")
-            penalty_rate = synced_slider_input(
-                label="Penalty",
-                key="penalty_slider",
-                min_value=1.0,
-                max_value=5.0,
-                default=DEFAULT_VALUES["penalty_value"],
-                step=0.5,
-                input_max=20.0,
-                help_text="Multiplier on tax rate for fines (Default: 3). Fine = fine rate * tax rate * undeclared amount."
+            st.markdown("**Private Audit Rate** (%)")
+            priv_audit_raw = synced_slider_input(
+                label="Priv", key="priv_audit_slider",
+                min_value=0.0, max_value=10.0,
+                default=DEFAULT_VALUES["priv_audit_value"],
+                step=0.1, input_max=100.0, format_str="%.1f",
             )
-        
-        # --- Enforcement Strategy ---
-        with st.expander("Enforcement Strategy", expanded=True):
-            st.caption("How the tax authority selects taxpayers for audits")
-            
-            # Audit Strategy
-            # Audit Strategy
-            st.markdown("**Audit Selection Method**", help="Choose how agents are selected for audit: Random (uniform), Risk-Based (top risk scores), or Network (closeness centrality).")
+            audit_private = priv_audit_raw / 100.0
+
+            st.write("")
+
+            st.markdown("**Business Audit Rate** (%)")
+            biz_audit_raw = synced_slider_input(
+                label="Biz", key="biz_audit_slider",
+                min_value=0.0, max_value=5.0,
+                default=DEFAULT_VALUES["biz_audit_value"],
+                step=0.01, input_max=100.0, format_str="%.2f",
+            )
+            audit_business = biz_audit_raw / 100.0
+
+            st.markdown("**Audit Focus** (Quantity vs Quality)")
+            audit_depth_raw = synced_slider_input(
+                label="Depth", key="audit_depth_slider",
+                min_value=0.0, max_value=100.0,
+                default=DEFAULT_VALUES["audit_depth_value"],
+                step=5.0, help_text="Percentage of budget allocated to deep 'Book Investigations' vs simple 'Admin Checks'",
+                format_str="%.0f"
+            )
+            audit_depth_books = audit_depth_raw / 100.0
+            st.caption(f"Strategy: {100-audit_depth_raw:.0f}% Admin Checks / {audit_depth_raw:.0f}% Book Investigations")
+
+            st.write("")
+            st.markdown("#### Targeting Intelligence")
             audit_strategy = st.selectbox(
-                "Strategy",
+                "Method",
                 options=["random", "risk_based", "network"],
                 format_func=lambda x: {
-                    "random": "Random · Uniform probability for all taxpayers",
+                    "random": "Random · Uniform probability",
                     "risk_based": "Risk-Based · Focus on high-risk profiles",
-                    "network": "Network · Target based on social connections"
+                    "network": "Network · Target central nodes"
                 }.get(x, x),
                 key="sel_audit",
                 label_visibility="collapsed",
                 help="Choose how agents are selected for audit: Random (uniform), Risk-Based (top risk scores), or Network (closeness centrality)."
             )
+
+            st.write("")
+            st.markdown("#### Service & Prevention")
+            
+            st.markdown("**Call Center Quality** (% Satisfied)")
+            phone_sat = synced_slider_input(
+                label="Phone", key="phone_sat_slider",
+                min_value=50.0, max_value=99.0,
+                default=DEFAULT_VALUES["phone_sat_value"],
+                step=1.0, format_str="%.0f"
+            )
+
+            st.markdown("**Web Portal Experience** (1-5 Stars)")
+            web_qual = synced_slider_input(
+                label="Web", key="web_qual_slider",
+                min_value=1.0, max_value=5.0,
+                default=DEFAULT_VALUES["web_qual_value"],
+                step=0.1, format_str="%.1f"
+            )
+
+            st.write("")
+            is_transparent = st.toggle("Launch Fairness/Transparency Campaign", 
+                                     value=st.session_state.get("transparency_toggle", False),
+                                     key="transparency_toggle",
+                                     help="Reduces the perception of unfairness when audited (Trust repair)")
+
+        # =====================================================
+        # 3. EXTERNAL ENVIRONMENT (Government)
+        # =====================================================
+        with st.expander("Fiscal Environment", expanded=False):
+            # st.caption("Fiscal policy and economic conditions set by the Government")
+            
+            st.markdown("**Fiscal Policy**")
+            
+            st.markdown("Income Tax Rate (%)")
+            tax_rate_raw = synced_slider_input(
+                label="Tax", key="tax_slider",
+                min_value=10, max_value=60,
+                default=DEFAULT_VALUES["tax_rate_value"],
+                step=5, input_max=100,
+            )
+            tax_rate = tax_rate_raw / 100.0
             
             st.write("")
             
-            # --- Private Audit Rate ---
-            # --- Private Audit Rate ---
-            st.markdown("**Private Audit Rate** · Individual taxpayer audit probability (%)", help="Jaarreportage 2024: audit rate for private individuals is 2.4% (manual+automated) or 0.91% (manual). Default 1%.")
-            priv_audit_raw = synced_slider_input(
-                label="Priv",
-                key="priv_audit_slider",
-                min_value=0.0,
-                max_value=10.0,
-                default=DEFAULT_VALUES["priv_audit_value"],
-                step=0.1,
-                input_max=100.0,
-                format_str="%.1f",
-                help_text="Jaarreportage 2024: audit rate for private individuals is 2.4% (manual+automated) or 0.91% (manual). Default 1%."
+            st.markdown("Penalty Multiplier (x)")
+            penalty_rate = synced_slider_input(
+                label="Penalty", key="penalty_slider",
+                min_value=1.0, max_value=5.0,
+                default=DEFAULT_VALUES["penalty_value"],
+                step=0.5, input_max=20.0,
             )
-            audit_private = priv_audit_raw / 100.0
+
+            st.markdown("---")
+            st.markdown("**Economic Context**")
             
-            # --- Business Audit Rate ---
-            # --- Business Audit Rate ---
-            st.markdown("**Business Audit Rate** · SME audit probability (%)", help="Jaarreportage 2024: audit rate for MKBs is 0.46%. Default 1%.")
-            biz_audit_raw = synced_slider_input(
-                label="Biz",
-                key="biz_audit_slider",
-                min_value=0.0,
-                max_value=5.0,
-                default=DEFAULT_VALUES["biz_audit_value"],
-                step=0.01,
-                input_max=100.0,
-                format_str="%.2f",
-                help_text="Jaarreportage 2024: audit rate for MKBs is 0.46%. Default 1%."
-            )
-            audit_business = biz_audit_raw / 100.0
-        
-        # =====================================================
-        # TIER 2: ADVANCED SETTINGS (Collapsed by Default)
-        # =====================================================
-        
-        # --- Network & Social Dynamics ---
-        with st.expander("Network & Social Dynamics", expanded=False):
-            # Use three columns: Social | Divider | Network
-            col_social, col_divider, col_network = st.columns([10, 1, 10])
-            
-            # Left column: Social Dynamics
-            with col_social:
-                st.markdown("**Social Dynamics**")
-                
-                row1_l, row1_r = st.columns([3, 2])
-                with row1_l:
-                    st.markdown("<div style='padding-top: 8px;'>Peer Influence (ω)</div>", unsafe_allow_html=True, help="Strength of social influence (0-1). 1 = Dishonest agent fully adopts neighbors´ behavior. 0 = Independent.")
-                with row1_r:
-                    social_influence = st.number_input("s", min_value=0.0, max_value=1.0, 
-                        value=DEFAULT_VALUES["social_influence_value"], step=0.1, format="%.2f", 
-                        label_visibility="collapsed", key="soc_inf",
-                        help="Strength of social influence (0-1). 1 = Dishonest agent fully adopts neighbors' behavior. 0 = Independent.")
-                
-                row2_l, row2_r = st.columns([3, 2])
-                with row2_l:
-                    st.markdown("<div style='padding-top: 8px;'>Service Boost</div>", unsafe_allow_html=True, help="Boost/decrease default perceived service orientation by up to 1 point on the Likert scale. Defaults: Private 3.22, Business 3.18.")
-                with row2_r:
-                    pso_boost = st.number_input("p", min_value=-1.0, max_value=1.0, 
-                        value=DEFAULT_VALUES["pso_boost_value"], step=0.1, format="%.1f", 
-                        label_visibility="collapsed", key="soc_pso",
-                        help="Boost/decrease default perceived service orientation by up to 1 point on the Likert scale. Defaults: Private 3.22, Business 3.18.")
-                
-                row3_l, row3_r = st.columns([3, 2])
-                with row3_l:
-                    st.markdown("<div style='padding-top: 8px;'>Trust Boost</div>", unsafe_allow_html=True, help="Boost/decrease default perceived trustworthiness by up to 1 point on the Likert scale. Defaults: Private 3.37, Business 3.37.")
-                with row3_r:
-                    trust_boost = st.number_input("t", min_value=-1.0, max_value=1.0, 
-                        value=DEFAULT_VALUES["trust_boost_value"], step=0.1, format="%.1f", 
-                        label_visibility="collapsed", key="soc_trust",
-                        help="Boost/decrease default perceived trustworthiness by up to 1 point on the Likert scale. Defaults: Private 3.37, Business 3.37.")
-                
-                st.markdown("---")
-                st.markdown("**Norm Update Scales**")
-                
-                row4_l, row4_r = st.columns([3, 2])
-                with row4_l:
-                    st.markdown("<div style='padding-top: 8px;'>Social (Private)</div>", unsafe_allow_html=True, help="Default adjustment factor per simulation timestep for social norms (Private). Default based on 0.5 * population std dev.")
-                with row4_r:
-                    sn_scale_priv = st.number_input("snp", min_value=0.0, max_value=1.0, 
-                        value=DEFAULT_VALUES["social_norm_scale_priv"], step=0.05, format="%.2f", 
-                        label_visibility="collapsed", key="sn_scale_priv",
-                        help="Default adjustment factor per simulation timestep for social norms (Private). Default based on 0.5 * population std dev.")
-                
-                row5_l, row5_r = st.columns([3, 2])
-                with row5_l:
-                    st.markdown("<div style='padding-top: 8px;'>Social (Business)</div>", unsafe_allow_html=True, help="Default adjustment factor per simulation timestep for social norms (Business). Default based on 0.5 * population std dev.")
-                with row5_r:
-                    sn_scale_biz = st.number_input("snb", min_value=0.0, max_value=1.0, 
-                        value=DEFAULT_VALUES["social_norm_scale_biz"], step=0.05, format="%.2f", 
-                        label_visibility="collapsed", key="sn_scale_biz",
-                        help="Default adjustment factor per simulation timestep for social norms (Business). Default based on 0.5 * population std dev.")
-                
-                row6_l, row6_r = st.columns([3, 2])
-                with row6_l:
-                    st.markdown("<div style='padding-top: 8px;'>Societal (Private)</div>", unsafe_allow_html=True, help="Default adjustment factor per simulation timestep for societal norms (Private). Default based on 0.1 * population std dev.")
-                with row6_r:
-                    stn_scale_priv = st.number_input("stnp", min_value=0.0, max_value=0.5, 
-                        value=DEFAULT_VALUES["societal_norm_scale_priv"], step=0.01, format="%.3f", 
-                        label_visibility="collapsed", key="stn_scale_priv",
-                        help="Default adjustment factor per simulation timestep for societal norms (Private). Default based on 0.1 * population std dev.")
-                
-                row7_l, row7_r = st.columns([3, 2])
-                with row7_l:
-                    st.markdown("<div style='padding-top: 8px;'>Societal (Business)</div>", unsafe_allow_html=True, help="Default adjustment factor per simulation timestep for societal norms (Business). Default based on 0.1 * population std dev.")
-                with row7_r:
-                    stn_scale_biz = st.number_input("stnb", min_value=0.0, max_value=0.5, 
-                        value=DEFAULT_VALUES["societal_norm_scale_biz"], step=0.01, format="%.3f", 
-                        label_visibility="collapsed", key="stn_scale_biz",
-                        help="Default adjustment factor per simulation timestep for societal norms (Business). Default based on 0.1 * population std dev.")
-            
-            # Center column: Vertical divider
-            with col_divider:
-                st.markdown("""
-                    <div style='
-                        width: 1px;
-                        background-color: #CBD5E1;
-                        min-height: 350px;
-                        margin: 0 auto;
-                    '></div>
-                """, unsafe_allow_html=True)
-            
-            # Right column: Network Structure
-            with col_network:
-                st.markdown("**Network Structure**")
-                
-                row8_l, row8_r = st.columns([3, 2])
-                with row8_l:
-                    st.markdown("<div style='padding-top: 8px;'>Homophily</div>", unsafe_allow_html=True, help="Algorithm targets up to 80% of connections per agent to be within the same group (Occupation/Sector).")
-                with row8_r:
-                    homophily = st.number_input("h", min_value=0.0, max_value=1.0, 
-                        value=DEFAULT_VALUES["homophily_value"], step=0.05, format="%.2f", 
-                        label_visibility="collapsed", key="net_homo",
-                        help="Algorithm targets up to 80% of connections per agent to be within the same group (Occupation/Sector).")
-                
-                row9_l, row9_r = st.columns([3, 2])
-                with row9_l:
-                    st.markdown("<div style='padding-top: 8px;'>Avg. Connections</div>", unsafe_allow_html=True, help="Target avg connections per agent. Lognormal distribution (Mean 86.27) based on Dutch register research.")
-                with row9_r:
-                    degree_mean = st.number_input("d", min_value=5.0, max_value=300.0, 
-                        value=DEFAULT_VALUES["degree_mean_value"], step=5.0, format="%.1f", 
-                        label_visibility="collapsed", key="net_deg",
-                        help="Target avg connections per agent. Lognormal distribution (Mean 86.27) based on Dutch register research.")
-                
-                row10_l, row10_r = st.columns([3, 2])
-                with row10_l:
-                    st.markdown("<div style='padding-top: 8px;'>Variability</div>", unsafe_allow_html=True, help="Standard deviation of connections per agent. Lognormal distribution (Std 64.99).")
-                with row10_r:
-                    degree_std = st.number_input("v", min_value=5.0, max_value=150.0, 
-                        value=DEFAULT_VALUES["degree_std_value"], step=5.0, format="%.1f", 
-                        label_visibility="collapsed", key="net_std",
-                        help="Standard deviation of connections per agent. Lognormal distribution (Std 64.99).")
-        
-        # --- Population Composition ---
-        with st.expander("Population Composition", expanded=False):
-            # Initialize session state for business ratio (store as percentage 0-100)
+            # Business Ratio Logic
             if "biz_ratio_value" not in st.session_state:
                 st.session_state.biz_ratio_value = DEFAULT_VALUES["biz_ratio_value"]
             
-            # Sync callbacks
             def sync_biz_ratio_from_slider():
                 st.session_state.biz_ratio_value = st.session_state.biz_ratio_slider
             def sync_biz_ratio_from_input():
@@ -497,8 +387,7 @@ def render():
             with col_biz_sl:
                 st.slider(
                     "Business Ratio Slider",
-                    min_value=0,
-                    max_value=100,
+                    min_value=0, max_value=100,
                     value=max(0, min(100, int(st.session_state.biz_ratio_value))),
                     step=1,
                     key="biz_ratio_slider",
@@ -508,140 +397,129 @@ def render():
                 )
             with col_biz_in:
                 st.number_input(
-                    "BizRatio",
-                    min_value=0.0,
-                    max_value=100.0,
+                    "BizRatio", min_value=0.0, max_value=100.0,
                     value=float(st.session_state.biz_ratio_value),
-                    step=1.0,
-                    format="%.1f",
-                    key="biz_ratio_input",
-                    label_visibility="collapsed",
-                    on_change=sync_biz_ratio_from_input
+                    step=1.0, format="%.1f", key="biz_ratio_input",
+                    label_visibility="collapsed", on_change=sync_biz_ratio_from_input
                 )
             business_ratio = st.session_state.biz_ratio_value / 100.0
-            st.caption(f"{st.session_state.biz_ratio_value:.1f}% businesses, {100 - st.session_state.biz_ratio_value:.1f}% private individuals")
-        
+
         # =====================================================
-        # TIER 3: EXPERT SETTINGS (Nested Expanders)
+        # 4. EXPERT CALIBRATION (Model)
         # =====================================================
-        
-        with st.expander("Agent Traits (Expert)", expanded=False):
-            st.caption("Fine-tune agent psychological and economic parameters")
+        with st.expander("Expert Calibration", expanded=False):
+            # st.caption("Fine-tune model parameters, social dynamics, and psychometrics")
             
-            # --- Private Individual Traits ---
-            with st.expander("Private Individual Traits", expanded=False):
-                col_p1, col_p2 = st.columns(2)
-                
+            # Psychometrics
+            st.markdown("#### Traits")
+            st.markdown("**Risk Aversion**")
+            risk_aversion = synced_slider_input(
+                label="Risk", key="risk_slider",
+                min_value=0.5, max_value=5.0,
+                default=DEFAULT_VALUES["risk_aversion_value"],
+                step=0.1, help_text="Higher values = Agents are more afraid of audits",
+            )
+            
+            st.markdown("**Baseline Honesty**")
+            compliance_raw = synced_slider_input(
+                label="Compliance", key="compliance_slider",
+                min_value=0, max_value=100,
+                default=DEFAULT_VALUES["compliance_value"],
+                step=5,
+            )
+            honest_ratio = compliance_raw / 100.0
+
+            st.markdown("#### Social Dynamics")
+            st.markdown("Social Influence")
+            social_influence = synced_slider_input(
+                label="Influence", key="soc_inf_slider",
+                min_value=0.0, max_value=1.0,
+                default=DEFAULT_VALUES["social_influence_value"],
+                step=0.05,
+            )
+            
+            st.markdown("Homophily")
+            homophily = synced_slider_input(
+                label="Homophily", key="net_homo",
+                min_value=0.0, max_value=1.0,
+                default=DEFAULT_VALUES["homophily_value"],
+                step=0.05,
+            )
+            
+            st.write("")
+            
+            st.markdown("Avg Connections")
+            degree_mean = synced_slider_input(
+                label="Degree", key="net_deg",
+                min_value=5.0, max_value=300.0,
+                default=DEFAULT_VALUES["degree_mean_value"],
+                step=5.0,
+            )
+
+            # Deep Traits (Nested)
+            with st.expander("Deep Trait Calibration"):
+                 # --- Private Individual Traits ---
+                st.markdown("**Private Individual Traits**")
+                col_p1, col_p2, _ = st.columns([10, 10, 0.5], gap="large")
                 with col_p1:
-                    st.markdown("**Personal Norms**", help="Private Personal Norms on Likert scale. Normal dist, Mean 3.40, SD 1.15. (Gangl et al. 2013)")
-                    priv_pn = st.slider("PN", 1.0, 5.0, DEFAULT_VALUES["priv_pn_value"], 0.1, key="sl_priv_pn", 
-                                        label_visibility="collapsed", help="Private Personal Norms. Normal dist, Mean 3.40, SD 1.15. (Gangl et al. 2013)")
-                    
-                    st.markdown("**Social Norms**", help="Private Social Norms on Likert scale. Normal dist, Mean 3.42, SD 1.06. (Gangl et al. 2013)")
-                    priv_sn = st.slider("SN", 1.0, 5.0, DEFAULT_VALUES["priv_sn_value"], 0.1, key="sl_priv_sn",
-                                        label_visibility="collapsed", help="Private Social Norms. Normal dist, Mean 3.42, SD 1.06. (Gangl et al. 2013)")
-                    
-                    st.markdown("**Societal Norms**", help="Private Societal Norms on Likert scale. Normal dist, Mean 3.97, SD 1.01. (Gangl et al. 2013)")
-                    priv_stn = st.slider("StN", 1.0, 5.0, DEFAULT_VALUES["priv_stn_value"], 0.1, key="sl_priv_stn",
-                                         label_visibility="collapsed", help="Private Societal Norms. Normal dist, Mean 3.97, SD 1.01. (Gangl et al. 2013)")
-                
+                    st.markdown("Personal Norms")
+                    priv_pn = st.slider("PN", 1.0, 5.0, DEFAULT_VALUES["priv_pn_value"], 0.1, key="sl_priv_pn", label_visibility="collapsed")
+                    st.markdown("Social Norms")
+                    priv_sn = st.slider("SN", 1.0, 5.0, DEFAULT_VALUES["priv_sn_value"], 0.1, key="sl_priv_sn", label_visibility="collapsed")
+                    st.markdown("Societal Norms")
+                    priv_stn = st.slider("StN", 1.0, 5.0, DEFAULT_VALUES["priv_stn_value"], 0.1, key="sl_priv_stn", label_visibility="collapsed")
                 with col_p2:
-                    st.markdown("**Service Orientation**", help="Private PSO on Likert scale. Normal dist, Mean 3.22, SD 0.68. (Gangl et al. 2013)")
-                    priv_pso = st.slider("PSO", 1.0, 5.0, DEFAULT_VALUES["priv_pso_value"], 0.1, key="sl_priv_pso",
-                                         label_visibility="collapsed", help="Private PSO. Normal dist, Mean 3.22, SD 0.68. (Gangl et al. 2013)")
-                    
-                    st.markdown("**Trustworthiness**", help="Private Trust on Likert scale. Normal dist, Mean 3.37, SD 0.69. (Gangl et al. 2013)")
-                    priv_pt = st.slider("PT", 1.0, 5.0, DEFAULT_VALUES["priv_pt_value"], 0.1, key="sl_priv_pt",
-                                        label_visibility="collapsed", help="Private Trust. Normal dist, Mean 3.37, SD 0.69. (Gangl et al. 2013)")
-                    
-                    st.markdown("**Average Income (€)**", help="Lognormal dist, Mean €41,000, SD €5,000. (CBS 2023)")
-                    priv_income = st.slider("Income", 20000, 80000, DEFAULT_VALUES["priv_income_value"], 1000, key="sl_priv_inc",
-                                            label_visibility="collapsed", help="Lognormal dist, Mean €41,000, SD €5,000. (CBS 2023)")
-                    
-                    st.markdown("**Subjective Audit Prob (%)**", help="Subjective Audit Prob. derived from Mean 3.43 (Gangl et al. 2013).")
-                    priv_audit_belief = st.slider("Audit Belief", 0.0, 100.0, DEFAULT_VALUES["priv_audit_belief_value"], 1.0, key="sl_priv_audit_belief",
-                                                   label_visibility="collapsed", help="Subjective Audit Prob. derived from Mean 3.43 (Gangl Q6).")
-            
-            # --- Business Traits ---
-            with st.expander("Business Owner Traits", expanded=False):
-                col_b1, col_b2 = st.columns(2)
-                
+                    st.markdown("Service Orientation")
+                    priv_pso = st.slider("PSO", 1.0, 5.0, DEFAULT_VALUES["priv_pso_value"], 0.1, key="sl_priv_pso", label_visibility="collapsed")
+                    st.markdown("Trustworthiness")
+                    priv_pt = st.slider("PT", 1.0, 5.0, DEFAULT_VALUES["priv_pt_value"], 0.1, key="sl_priv_pt", label_visibility="collapsed")
+                    st.markdown("Audit Belief")
+                    priv_audit_belief = st.slider("Belief", 0.0, 100.0, DEFAULT_VALUES["priv_audit_belief_value"], 1.0, key="sl_priv_audit_belief", label_visibility="collapsed")
+
+                st.markdown("---")
+                st.markdown("**Business Traits**")
+                col_b1, col_b2, _ = st.columns([10, 10, 0.5], gap="large")
                 with col_b1:
-                    st.markdown("**Personal Norms**", help="Business Personal Norms. Normal dist, Mean 3.82, SD 1.04. (Gangl et al. 2013)")
-                    biz_pn = st.slider("PN", 1.0, 5.0, DEFAULT_VALUES["biz_pn_value"], 0.1, key="sl_biz_pn",
-                                       label_visibility="collapsed", help="Business Personal Norms. Normal dist, Mean 3.82, SD 1.04. (Gangl et al. 2013)")
-                    
-                    st.markdown("**Social Norms**", help="Business Social Norms. Normal dist, Mean 3.82, SD 1.02. (Gangl et al. 2013)")
-                    biz_sn = st.slider("SN", 1.0, 5.0, DEFAULT_VALUES["biz_sn_value"], 0.1, key="sl_biz_sn",
-                                       label_visibility="collapsed", help="Business Social Norms. Normal dist, Mean 3.82, SD 1.02. (Gangl et al. 2013)")
-                    
-                    st.markdown("**Societal Norms**", help="Business Societal Norms. Normal dist, Mean 4.12, SD 0.98. (Gangl et al. 2013)")
-                    biz_stn = st.slider("StN", 1.0, 5.0, DEFAULT_VALUES["biz_stn_value"], 0.1, key="sl_biz_stn",
-                                        label_visibility="collapsed", help="Business Societal Norms. Normal dist, Mean 4.12, SD 0.98. (Gangl et al. 2013)")
-                
+                    st.markdown("Personal Norms")
+                    biz_pn = st.slider("PN", 1.0, 5.0, DEFAULT_VALUES["biz_pn_value"], 0.1, key="sl_biz_pn", label_visibility="collapsed")
+                    st.markdown("Social Norms")
+                    biz_sn = st.slider("SN", 1.0, 5.0, DEFAULT_VALUES["biz_sn_value"], 0.1, key="sl_biz_sn", label_visibility="collapsed")
+                    st.markdown("Societal Norms")
+                    biz_stn = st.slider("StN", 1.0, 5.0, DEFAULT_VALUES["biz_stn_value"], 0.1, key="sl_biz_stn", label_visibility="collapsed")
                 with col_b2:
-                    st.markdown("**Service Orientation**", help="Business PSO. Normal dist, Mean 3.18, SD 0.67. (Gangl et al. 2013)")
-                    biz_pso = st.slider("PSO", 1.0, 5.0, DEFAULT_VALUES["biz_pso_value"], 0.1, key="sl_biz_pso",
-                                        label_visibility="collapsed", help="Business PSO. Normal dist, Mean 3.18, SD 0.67. (Gangl et al. 2013)")
-                    
-                    st.markdown("**Trustworthiness**", help="Business Trust. Normal dist, Mean 3.37, SD 0.69. (Gangl et al. 2013)")
-                    biz_pt = st.slider("PT", 1.0, 5.0, DEFAULT_VALUES["biz_pt_value"], 0.1, key="sl_biz_pt",
-                                       label_visibility="collapsed", help="Business Trust. Normal dist, Mean 3.37, SD 0.69. (Gangl et al. 2013)")
-                    
-                    st.markdown("**Subjective Audit Prob (%)**", help="Subjective Audit Prob. derived from Mean 3.54 (Gangl Q6).")
-                    biz_audit_belief = st.slider("Audit Belief", 0.0, 100.0, DEFAULT_VALUES["biz_audit_belief_value"], 1.0, key="sl_biz_audit_belief",
-                                                  label_visibility="collapsed", help="Subjective Audit Prob. derived from Mean 3.54 (Gangl Q6).")
-            
-            # --- SME Risk Model ---
-            with st.expander("SME Risk Model", expanded=False):
-                st.caption("Adjust risk score deltas for business characteristics")
-                
-                col_r1, col_r2 = st.columns(2)
-                
-                with col_r1:
-                    st.markdown("**Base Risk**", help="Baseline risk probability before adjustments. Range [0.05, 0.90].")
-                    risk_base = st.slider("Base", 0.05, 0.35, DEFAULT_VALUES["risk_base_value"], 0.01, key="sl_risk_base",
-                                          label_visibility="collapsed", help="Baseline risk probability before adjustments. Range [0.05, 0.90].")
-                    
-                    st.markdown("**High-Risk Sector Δ**", help="Additive adjustment (+0.20) for high-risk sectors (e.g., Construction, Hospitality).")
-                    delta_sector = st.slider("Sector", 0.0, 0.30, DEFAULT_VALUES["delta_sector_value"], 0.01, key="sl_d_sector",
-                                             label_visibility="collapsed", help="Additive adjustment (+0.20) for high-risk sectors (e.g., Construction, Hospitality).")
-                    
-                    st.markdown("**Cash Intensive Δ**", help="Additive adjustment (+0.10) for cash-intensive businesses.")
-                    delta_cash = st.slider("Cash", 0.0, 0.20, DEFAULT_VALUES["delta_cash_value"], 0.01, key="sl_d_cash",
-                                           label_visibility="collapsed", help="Additive adjustment (+0.10) for cash-intensive businesses.")
-                
-                with col_r2:
-                    st.markdown("**High Digitalisation Δ**", help="Subtractive adjustment (-0.10) for high digitalisation.")
-                    delta_digi_high = st.slider("Digi High", -0.20, 0.0, DEFAULT_VALUES["delta_digi_high_value"], 0.01, key="sl_d_digi",
-                                                label_visibility="collapsed", help="Subtractive adjustment (-0.10) for high digitalisation.")
-                    
-                    st.markdown("**Has Advisor Δ**", help="Subtractive adjustment (-0.10) for having a fiscal advisor.")
-                    delta_advisor = st.slider("Advisor", -0.20, 0.0, -DEFAULT_VALUES["delta_advisor_value"], 0.01, key="sl_d_adv",
-                                              label_visibility="collapsed", help="Subtractive adjustment (-0.10) for having a fiscal advisor.")
-                    
-                    st.markdown("**Prior Audit Δ**", help="Subtractive adjustment (-0.10 for Books Audit, -0.03 for Admin Check).")
-                    delta_audit = st.slider("Audit", -0.20, 0.0, -DEFAULT_VALUES["delta_audit_value"], 0.01, key="sl_d_audit",
-                                            label_visibility="collapsed", help="Subtractive adjustment (-0.10 for Books Audit, -0.03 for Admin Check).")
-        
+                    st.markdown("Service Orientation")
+                    biz_pso = st.slider("PSO", 1.0, 5.0, DEFAULT_VALUES["biz_pso_value"], 0.1, key="sl_biz_pso", label_visibility="collapsed")
+                    st.markdown("Trustworthiness")
+                    biz_pt = st.slider("PT", 1.0, 5.0, DEFAULT_VALUES["biz_pt_value"], 0.1, key="sl_biz_pt", label_visibility="collapsed")
+                    st.markdown("Audit Belief")
+                    biz_audit_belief = st.slider("Belief", 0.0, 100.0, DEFAULT_VALUES["biz_audit_belief_value"], 1.0, key="sl_biz_audit_belief", label_visibility="collapsed")
+
+                # Hidden defaults for unused params to keep code working
+                degree_std = DEFAULT_VALUES["degree_std_value"]
+                risk_base = DEFAULT_VALUES["risk_base_value"]
+                delta_sector = DEFAULT_VALUES["delta_sector_value"]
+                delta_cash = DEFAULT_VALUES["delta_cash_value"]
+                delta_digi_high = DEFAULT_VALUES["delta_digi_high_value"]
+                delta_advisor = DEFAULT_VALUES["delta_advisor_value"]
+                delta_audit = DEFAULT_VALUES["delta_audit_value"]
+                social_norm_scale_priv = DEFAULT_VALUES["social_norm_scale_priv"]
+                social_norm_scale_biz = DEFAULT_VALUES["social_norm_scale_biz"]
+                societal_norm_scale_priv = DEFAULT_VALUES["societal_norm_scale_priv"]
+                societal_norm_scale_biz = DEFAULT_VALUES["societal_norm_scale_biz"]
+                priv_income = DEFAULT_VALUES["priv_income_value"]
+
         # =====================================================
         # ACTION BAR
         # =====================================================
+        # =====================================================
+        # ACTION BAR
+        # =====================================================
+        # Custom tight separator matching results.py
+        st.markdown('<hr style="margin-top: 12px; margin-bottom: 8px; border: none; border-top: 1px solid #D1D9E0;">', unsafe_allow_html=True)
         
-        st.markdown("<div style='height: 24px'></div>", unsafe_allow_html=True)
-        st.divider()
-        
-        col1, col2, col3, spacer, col4 = st.columns([1, 1, 1, 2, 2])
-        
-        with col1:
-            st.button("Import", use_container_width=True, key="btn_import")
-        with col2:
-            st.button("Export", use_container_width=True, key="btn_export")
-        with col3:
-            if st.button("Reset", use_container_width=True, key="btn_reset"):
-                reset_to_defaults()
-                st.rerun()
-        with col4:
+        _, col_start = st.columns([5, 2])
+
+        with col_start:
             if st.button("Start Simulation", type="primary", use_container_width=True, key="btn_start"):
                 # Build complete config dict
                 st.session_state.simulation_params = {
@@ -660,26 +538,33 @@ def render():
                     "audit_strategy": audit_strategy,
                     "audit_rate_private": audit_private,
                     "audit_rate_business": audit_business,
+                    "audit_depth_books": audit_depth_books, # New: Pass ratio
                     
-                    # Network
+                    # Service (New)
+                    "phone_sat": phone_sat,
+                    "web_qual": web_qual,
+                    "transparency": is_transparent,
+                    
+                    # Expert - Network
                     "homophily": homophily,
                     "degree_mean": degree_mean,
                     "degree_std": degree_std,
-                    
-                    # Social
                     "social_influence": social_influence,
-                    "pso_boost": pso_boost,
-                    "trust_boost": trust_boost,
+                    "pso_boost": 0.0, # Deprecated by detailed service
+                    "trust_boost": 0.0, # Deprecated by transparency
                     
-                    # Norm Update Scales
+                    # Expert - Risk
+                    "risk_aversion": risk_aversion,
+
+                    # Norm Update Scales (Hidden defaults)
                     "norm_update": {
                         "social_norm_scale": {
-                            "private": sn_scale_priv,
-                            "business": sn_scale_biz,
+                            "private": social_norm_scale_priv,
+                            "business": social_norm_scale_biz,
                         },
                         "societal_norm_scale": {
-                            "private": stn_scale_priv,
-                            "business": stn_scale_biz,
+                            "private": societal_norm_scale_priv,
+                            "business": societal_norm_scale_biz,
                         },
                     },
                     
@@ -704,7 +589,7 @@ def render():
                         "subjective_audit_prob_mean": biz_audit_belief,
                     },
                     
-                    # SME Risk
+                    # SME Risk (Hidden defaults)
                     "sme_risk": {
                         "base": risk_base,
                         "delta_sector": delta_sector,
