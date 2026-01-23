@@ -5,10 +5,13 @@ import os
 import streamlit as st
 
 
-def render_download_button():
+def render_download_button(**kwargs):
     """
     Renders a download button for the ALGORITHM.pdf guide.
     This should be placed in the header area of pages.
+    
+    Args:
+        **kwargs: Additional arguments passed to st.download_button
     """
     # Path to the PDF in the root directory
     # Assumes dashboard/utils/ui.py -> ../../ALGORITHM.pdf
@@ -35,7 +38,9 @@ def render_download_button():
             file_name="ALGORITHM.pdf",
             mime="application/pdf",
             help="Download the detailed algorithm documentation PDF",
-            key="btn_download_algo_guide"
+            key="btn_download_algo_guide",
+            type="primary",
+            **kwargs
         )
     except Exception as e:
         st.error(f"Error loading guide: {e}")

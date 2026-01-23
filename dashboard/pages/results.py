@@ -125,7 +125,9 @@ def render():
             return
         
         # Page header - title with date inline (like History page)
-        header_col1, header_col2 = st.columns([3, 1])
+        # Page header - title with date inline (like History page)
+        # Use a spacer column to push the button all the way to the right
+        header_col1, spacer, header_col2 = st.columns([3, 6, 1.2])
         with header_col1:
             st.markdown(f'<div style="display:flex; align-items:baseline; gap:16px; margin-bottom:4px;">'
                         f'<span style="font-size:28px; font-weight:700; color:#1A1A1A;">Simulation Results</span>'
@@ -135,7 +137,7 @@ def render():
             from dashboard.utils.ui import render_download_button
             render_download_button()
             
-        st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:24px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="border-bottom:1px solid #D1D9E0; margin-bottom:24px; margin-top: -12px;"></div>', unsafe_allow_html=True)
         
         # ===== KPI CARDS ROW =====
         kpi1, kpi2, kpi3, kpi4 = st.columns(4, gap="medium")
@@ -143,38 +145,42 @@ def render():
         with kpi1:
             st.markdown(f"""
                 <div class="kpi-card">
+                    <div class="tooltip-icon" data-tooltip="Average sum of Total Taxes collected over the full duration, averaged across runs.">?</div>
                     <div class="kpi-label">Total Tax Revenue</div>
                     <div class="kpi-value">{format_number(results.get('total_taxes', 0))}</div>
                     <div class="kpi-change positive">Collected</div>
                 </div>
-            """, unsafe_allow_html=True, help="Average sum of Total Taxes collected over the full duration, averaged across runs.")
+            """, unsafe_allow_html=True) # , help="Average sum of Total Taxes collected over the full duration, averaged across runs."
         
         with kpi2:
             st.markdown(f"""
                 <div class="kpi-card">
+                    <div class="tooltip-icon" data-tooltip="Average sum of Tax Gap accumulated over the full duration, averaged across runs.">?</div>
                     <div class="kpi-label">Total Tax Gap</div>
                     <div class="kpi-value">{format_number(results.get('total_tax_gap', 0))}</div>
                     <div class="kpi-change negative">Cumulative uncollected</div>
                 </div>
-            """, unsafe_allow_html=True, help="Average sum of Tax Gap accumulated over the full duration, averaged across runs.")
+            """, unsafe_allow_html=True) # , help="Average sum of Tax Gap accumulated over the full duration, averaged across runs."
         
         with kpi3:
             st.markdown(f"""
                 <div class="kpi-card">
+                    <div class="tooltip-icon" data-tooltip="The Compliance Rate at the very last step (averaged across runs).">?</div>
                     <div class="kpi-label">Final Compliance</div>
                     <div class="kpi-value">{format_percentage(results.get('final_compliance', 0))}</div>
                     <div class="kpi-change positive">Fully compliant agents</div>
                 </div>
-            """, unsafe_allow_html=True, help="The Compliance Rate at the very last step (averaged across runs).")
+            """, unsafe_allow_html=True)  # , help="The Compliance Rate at the very last step (averaged across runs)."
         
         with kpi4:
             st.markdown(f"""
                 <div class="kpi-card">
+                    <div class="tooltip-icon" data-tooltip="Sum of all audits across all steps (averaged across runs).">?</div>
                     <div class="kpi-label">Audits Performed</div>
                     <div class="kpi-value">{results.get('total_audits', 0):,}</div>
                     <div class="kpi-change">Average per run</div>
                 </div>
-            """, unsafe_allow_html=True, help="Sum of all audits across all steps (averaged across runs).")
+            """, unsafe_allow_html=True) # , help="Sum of all audits across all steps (averaged across runs)."
         
         # Small spacing between KPI rows
         st.markdown("<div style='height: 16px'></div>", unsafe_allow_html=True)
@@ -186,41 +192,45 @@ def render():
             final_four = results.get('final_four', 0)
             st.markdown(f"""
                 <div class="kpi-card">
+                    <div class="tooltip-icon" data-tooltip="The Avg FOUR at the very last step (averaged across runs).">?</div>
                     <div class="kpi-label">Final FOUR</div>
                     <div class="kpi-value">{format_percentage(final_four)}</div>
                     <div class="kpi-change">Fraud opportunity use</div>
                 </div>
-            """, unsafe_allow_html=True, help="The Avg FOUR at the very last step (averaged across runs).")
+            """, unsafe_allow_html=True)  # , help="The Avg FOUR at the very last step (averaged across runs)."
         
         with kpi6:
             final_morale = results.get('final_tax_morale', 0)
             st.markdown(f"""
                 <div class="kpi-card">
+                    <div class="tooltip-icon" data-tooltip="The Tax Morale at the very last step (averaged across runs).">?</div>
                     <div class="kpi-label">Tax Morale</div>
                     <div class="kpi-value">{final_morale:.1f}%</div>
                     <div class="kpi-change positive">Intrinsic willingness</div>
                 </div>
-            """, unsafe_allow_html=True, help="The Tax Morale at the very last step (averaged across runs).")
+            """, unsafe_allow_html=True) # ,  help="The Tax Morale at the very last step (averaged across runs)."
         
         with kpi7:
             final_mgtr = results.get('final_mgtr', 0)
             st.markdown(f"""
                 <div class="kpi-card">
+                    <div class="tooltip-icon" data-tooltip="The MGTR at the very last step (averaged across runs).">?</div>
                     <div class="kpi-label">Final MGTR</div>
                     <div class="kpi-value">{format_percentage(final_mgtr)}</div>
                     <div class="kpi-change positive">Effective tax rate</div>
                 </div>
-            """, unsafe_allow_html=True, help="The MGTR at the very last step (averaged across runs).")
+            """, unsafe_allow_html=True) # , help="The MGTR at the very last step (averaged across runs)."
         
         with kpi8:
             total_penalties = results.get('total_penalties', 0)
             st.markdown(f"""
                 <div class="kpi-card">
+                    <div class="tooltip-icon" data-tooltip="Sum of all penalties collected across all steps (averaged across runs).">?</div>
                     <div class="kpi-label">Correction Yield</div>
                     <div class="kpi-value">{format_number(total_penalties)}</div>
                     <div class="kpi-change">Avg penalties per run</div>
                 </div>
-            """, unsafe_allow_html=True, help="Sum of all penalties collected across all steps (averaged across runs).")
+            """, unsafe_allow_html=True) # , help="Sum of all penalties collected across all steps (averaged across runs)."
         
         # Spacing
         st.markdown("<div style='height: 32px'></div>", unsafe_allow_html=True)

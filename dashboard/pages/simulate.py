@@ -616,3 +616,82 @@ def render():
                 
                 st.session_state.current_page = "running"
                 st.rerun()
+
+def load_params_into_state(params: dict):
+    """
+    Load configuration dictionary into session state widgets.
+    Maps the nested params structure back to the flat widget keys.
+    """
+    if not params:
+        return
+
+    # Helper to safely set state if key exists or needed
+    def set_state(key, value):
+        st.session_state[key] = value
+        # Also set the input counterpart for synced widgets if it exists
+        if f"{key}_input" in st.session_state:
+            st.session_state[f"{key}_input"] = value
+
+    # --- Tier 1: Essential ---
+    set_state("pop_slider", params.get("n_agents", 1000))
+    set_state("dur_slider", params.get("n_steps", 50))
+    set_state("run_slider", params.get("n_runs", 1))
+    
+    set_state("tax_slider", int(params.get("tax_rate", 0.3) * 100))
+    set_state("penalty_slider", params.get("penalty_rate", 1.5))
+    set_state("compliance_slider", int(params.get("honest_ratio", 0.92) * 100))
+    
+    set_state("sel_audit", params.get("audit_strategy", "random"))
+    set_state("priv_audit_slider", params.get("audit_rate_private", 0.05) * 100)
+    set_state("biz_audit_slider", params.get("audit_rate_business", 0.10) * 100)
+    
+    # Special handling for biz_ratio which uses a custom sync mechanism
+    biz_ratio_val = params.get("business_ratio", 0.15) * 100
+    set_state("biz_ratio_slider", biz_ratio_val)
+    set_state("biz_ratio_input", biz_ratio_val)
+    st.session_state.biz_ratio_value = biz_ratio_val
+    
+    # --- Tier 2: Advanced ---
+    set_state("net_homo", params.get("homophily", 0.1))
+    set_state("net_deg", params.get("degree_mean", 10.0))
+    set_state("net_std", params.get("degree_std", 10.0))
+    
+    set_state("soc_inf", params.get("social_influence", 0.1))
+    set_state("soc_pso", params.get("pso_boost", 0.0))
+    set_state("soc_trust", params.get("trust_boost", 0.0))
+    
+    norm_update = params.get("norm_update", {})
+    soc_norm = norm_update.get("social_norm_scale", {})
+    stn_norm = norm_update.get("societal_norm_scale", {})
+    
+    set_state("sn_scale_priv", soc_norm.get("private", 0.1))
+    set_state("sn_scale_biz", soc_norm.get("business", 0.1))
+    set_state("stn_scale_priv", stn_norm.get("private", 0.05))
+    set_state("stn_scale_biz", stn_norm.get("business", 0.05))
+    
+    # --- Tier 3: Expert (Traits) ---
+    traits_p = params.get("traits_private", {})
+    set_state("sl_priv_pn", traits_p.get("personal_norms_mean", 3.0))
+    set_state("sl_priv_sn", traits_p.get("social_norms_mean", 3.0))
+    set_state("sl_priv_stn", traits_p.get("societal_norms_mean", 3.0))
+    set_state("sl_priv_pso", traits_p.get("pso_mean", 3.0))
+    set_state("sl_priv_pt", traits_p.get("trust_mean", 3.0))
+    set_state("sl_priv_inc", traits_p.get("income_mean", 50000))
+    set_state("sl_priv_audit_belief", traits_p.get("subjective_audit_prob_mean", 35.0))
+    
+    traits_b = params.get("traits_business", {})
+    set_state("sl_biz_pn", traits_b.get("personal_norms_mean", 3.0))
+    set_state("sl_biz_sn", traits_b.get("social_norms_mean", 3.0))
+    set_state("sl_biz_stn", traits_b.get("societal_norms_mean", 3.0))
+    set_state("sl_biz_pso", traits_b.get("pso_mean", 3.0))
+    set_state("sl_biz_pt", traits_b.get("trust_mean", 3.0))
+    set_state("sl_biz_audit_belief", traits_b.get("subjective_audit_prob_mean", 35.0))
+    
+    # --- SME Risk ---
+    sme = params.get("sme_risk", {})
+    set_state("sl_risk_base", sme.get("base", 0.1))
+    set_state("sl_d_sector", sme.get("delta_sector", 0.1))
+    set_state("sl_d_cash", sme.get("delta_cash", 0.05))
+    set_state("sl_d_digi", sme.get("delta_digi_high", -0.05))
+    set_state("sl_d_adv", abs(sme.get("delta_advisor", 0.05))) # Config stores as negative, slider uses abs
+    set_state("sl_d_audit", abs(sme.get("delta_audit", 0.05)))
