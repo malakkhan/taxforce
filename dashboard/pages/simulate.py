@@ -122,9 +122,11 @@ def synced_slider_input(
     
     # Three columns: slider | input | reset button
     # Tight ratios that keep input and reset close together
-    col_sl, col_in, col_reset = st.columns([4, 0.6, 0.4], gap="small")
+    col_sl, col_in, col_reset = st.columns([4, 0.8, 0.4], gap="small")
     
     with col_sl:
+        # Marker for CSS targeting
+        st.markdown('<div class="slider-compact-marker"></div>', unsafe_allow_html=True)
         st.slider(
             f"{label} Slider",
             min_value=min_value,
@@ -184,6 +186,123 @@ def synced_slider_input(
             st.rerun()
     
     return st.session_state[key]
+
+
+def compact_text_input(
+    label: str,
+    key: str,
+    default,
+    min_value=None,
+    max_value=None,
+    step=None,
+    format_str: str = None,
+    help_text: str = None,
+):
+    """
+    Creates a compact horizontal text input: Label | Input | Reset
+    Designed to tile horizontally (2-3 per row) and stack vertically.
+    
+    Layout (single row):
+    ┌─────────────────────────────────────────────────────┐
+    │ Label (?)         [  value  ]  ↻                    │
+    │                   default: X.XX                     │
+    └─────────────────────────────────────────────────────┘
+    """
+    # Reset flag key - use 'txt_' prefix to differentiate from slider resets
+    reset_flag_key = f"txt_{key}_do_reset"
+    if st.session_state.get(reset_flag_key, False):
+        st.session_state[reset_flag_key] = False
+        st.session_state[key] = default
+    
+    # Initialize state
+    if key not in st.session_state:
+        st.session_state[key] = default
+    
+    # Format default for display
+    if isinstance(default, float):
+        if format_str:
+            default_str = format_str % default
+        elif default != int(default):
+            default_str = f"{default:.2f}"
+        else:
+            default_str = str(int(default))
+    else:
+        default_str = str(default)
+    
+    # Determine step if not provided
+    if step is None:
+        step = 0.1 if isinstance(default, float) else 1
+    
+    # Three columns layout: label | input | reset
+    # Equal ratios - CSS will override with fixed widths for precise proximity
+    col_label, col_input, col_reset = st.columns([1, 1, 1], gap="small")
+    
+    with col_label:
+        # Class-based marker for robust CSS targeting
+        st.markdown('<div class="compact-marker"></div>', unsafe_allow_html=True)
+        # Label with optional help tooltip
+        if help_text:
+            st.markdown(f"**{label}**", help=help_text)
+        else:
+            st.markdown(f"**{label}**")
+    
+    with col_input:
+        input_kwargs = {
+            "label": label,
+            "value": st.session_state[key],
+            "step": step,
+            "key": f"txt_{key}_input",
+            "label_visibility": "collapsed",
+        }
+        if min_value is not None:
+            input_kwargs["min_value"] = min_value
+        if max_value is not None:
+            input_kwargs["max_value"] = max_value
+        if format_str:
+            input_kwargs["format"] = format_str
+            
+        input_val = st.number_input(**input_kwargs)
+        
+        # Default value below input - tight styling
+        st.markdown(
+            f'''<div style="
+                position: relative;
+                width: 80px;
+                height: 12px;
+                margin-top: 2px;
+            ">
+                <span style="
+                    position: absolute;
+                    top: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    font-size: 10px;
+                    color: #718096;
+                    white-space: nowrap;
+                ">Default: {default_str}</span>
+            </div>''',
+            unsafe_allow_html=True
+        )
+        
+        # Sync back to state if changed
+        if input_val != st.session_state[key]:
+            new_val = input_val
+            if min_value is not None:
+                new_val = max(min_value, new_val)
+            if max_value is not None:
+                new_val = min(max_value, new_val)
+            st.session_state[key] = new_val
+            st.rerun()
+    
+    with col_reset:
+        # Reset button - same pattern as slider reset
+        reset_key = f"txt_{key}_reset"
+        if st.button("↻", key=reset_key, help=f"Reset to default: {default_str}"):
+            st.session_state[reset_flag_key] = True
+            st.rerun()
+    
+    return st.session_state[key]
+
 
 def render():
     """Render the simulation configuration page with tiered settings."""
@@ -520,12 +639,6 @@ def render():
 
                 # Hidden defaults for unused params to keep code working
                 degree_std = DEFAULT_VALUES["degree_std_value"]
-                risk_base = DEFAULT_VALUES["risk_base_value"]
-                delta_sector = DEFAULT_VALUES["delta_sector_value"]
-                delta_cash = DEFAULT_VALUES["delta_cash_value"]
-                delta_digi_high = DEFAULT_VALUES["delta_digi_high_value"]
-                delta_advisor = DEFAULT_VALUES["delta_advisor_value"]
-                delta_audit = DEFAULT_VALUES["delta_audit_value"]
                 social_norm_scale_priv = DEFAULT_VALUES["social_norm_scale_priv"]
                 social_norm_scale_biz = DEFAULT_VALUES["social_norm_scale_biz"]
                 societal_norm_scale_priv = DEFAULT_VALUES["societal_norm_scale_priv"]
@@ -533,8 +646,83 @@ def render():
                 priv_income = DEFAULT_VALUES["priv_income_value"]
 
         # =====================================================
-        # ACTION BAR
+        # 5. SME RISK DELTAS (Compact Text Inputs Demo)
         # =====================================================
+        with st.expander("SME Risk Deltas", expanded=False):
+            st.caption("Fine-tune the risk score calculation for SME agents")
+            
+            # 2 inputs per row - each compact_text_input is already horizontal
+            col_left, col_right = st.columns(2, gap="large")
+            
+            with col_left:
+                risk_base = compact_text_input(
+                    label="Base Risk",
+                    key="risk_base",
+                    default=DEFAULT_VALUES["risk_base_value"],
+                    min_value=0.0,
+                    max_value=1.0,
+                    step=0.05,
+                    format_str="%.2f",
+                    help_text="Baseline risk score before any deltas are applied"
+                )
+                
+                delta_cash = compact_text_input(
+                    label="Δ Cash Intensive",
+                    key="delta_cash",
+                    default=DEFAULT_VALUES["delta_cash_value"],
+                    min_value=0.0,
+                    max_value=0.5,
+                    step=0.05,
+                    format_str="%.2f",
+                    help_text="Delta added for cash-intensive businesses"
+                )
+                
+                delta_advisor = compact_text_input(
+                    label="Δ Has Advisor",
+                    key="delta_advisor",
+                    default=DEFAULT_VALUES["delta_advisor_value"],
+                    min_value=0.0,
+                    max_value=0.5,
+                    step=0.05,
+                    format_str="%.2f",
+                    help_text="Delta (absolute value) for having a tax advisor"
+                )
+            
+            with col_right:
+                delta_sector = compact_text_input(
+                    label="Δ High-Risk Sector",
+                    key="delta_sector",
+                    default=DEFAULT_VALUES["delta_sector_value"],
+                    min_value=0.0,
+                    max_value=0.5,
+                    step=0.05,
+                    format_str="%.2f",
+                    help_text="Delta added for high-risk sectors"
+                )
+                
+                delta_digi_high = compact_text_input(
+                    label="Δ High Digitalization",
+                    key="delta_digi_high",
+                    default=DEFAULT_VALUES["delta_digi_high_value"],
+                    min_value=-0.5,
+                    max_value=0.0,
+                    step=0.05,
+                    format_str="%.2f",
+                    help_text="Delta (reduction) for highly digitalized businesses"
+                )
+                
+                delta_audit = compact_text_input(
+                    label="Δ Prior Audit",
+                    key="delta_audit",
+                    default=DEFAULT_VALUES["delta_audit_value"],
+                    min_value=0.0,
+                    max_value=0.5,
+                    step=0.05,
+                    format_str="%.2f",
+                    help_text="Delta (absolute value) for prior books audit"
+                )
+
+
         # =====================================================
         # ACTION BAR
         # =====================================================

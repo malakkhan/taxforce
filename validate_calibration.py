@@ -8,7 +8,8 @@ from core.model import TaxComplianceModel
 from core.config import SimulationConfig
 
 def run_seed(seed):
-    cfg = SimulationConfig.from_json('core/configs/config_final.json')
+    config_path = sys.argv[1] if len(sys.argv) > 1 else 'core/configs/config_final.json'
+    cfg = SimulationConfig.from_json(config_path)
     model = TaxComplianceModel(config=cfg, seed=seed)
     
     biz = [a for a in model.agents if a.occupation == 'business']

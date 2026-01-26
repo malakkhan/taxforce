@@ -2,28 +2,6 @@
     "simulation": {
         "n_agents": 5000
     },
-    "traits": {
-        "business": {
-            "subjective_audit_prob": {
-                "mean": 25.0,
-                "std": 5.0
-            },
-            "personal_norms": {
-                "mean": 4.3,
-                "std": 0.8
-            }
-        },
-        "private": {
-            "personal_norms": {
-                "mean": 4.3,
-                "std": 0.8
-            },
-            "subjective_audit_prob": {
-                "mean": 30.0,
-                "std": 10.0
-            }
-        }
-    },
     "social": {
         "social_influence": 0.10
     },
@@ -148,7 +126,7 @@
             }
         },
         "information": {
-            "enabled": true,
+            "enabled": false,
             "rate": {
                 "private": 0.03,
                 "business": 0.05
