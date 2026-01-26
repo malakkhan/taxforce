@@ -49,7 +49,7 @@
     width: 45px !important;
     /* Matches text inputs */
     min-width: 45px !important;
-    padding-left: 8px !important;
+    padding-left: 14px !important;
     /* Matches text inputs */
     display: flex !important;
     align-items: center !important;
@@ -76,7 +76,14 @@
 
 [data-testid="stHorizontalBlock"]:not(:has([data-testid="stHorizontalBlock"])):has(.slider-compact-marker) button:hover {
     color: #01689B !important;
-    transform: rotate(-45deg) !important;
+    transform: rotate(90deg) !important;
+}
+
+/* Zero out markdown padding for slider compact view */
+[data-testid="stHorizontalBlock"]:not(:has([data-testid="stHorizontalBlock"])):has(.slider-compact-marker) .stMarkdown p {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
 }
 
 /* ===== COMPACT TEXT INPUT ROWS ===== */
@@ -146,5 +153,5 @@
 
 [data-testid="stHorizontalBlock"]:not(:has([data-testid="stHorizontalBlock"])):has(.compact-marker) button:hover {
     color: #01689B !important;
-    transform: rotate(-45deg) !important;
+    transform: rotate(90deg) !important;
 }

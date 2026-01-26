@@ -31,12 +31,26 @@ def load_css(page_name: str = None):
 load_css()
 
 # Initialize session state
+# Initialize session state (and handle URL routing)
+if "current_page" not in st.session_state:
+    # Check if URL has a specific page
+    params = st.query_params
+    target_page = params.get("page", "home")
+    
+    # Validate page exists, default to home if not
+    # We need to access PAGES keys, but PAGES isn't defined yet.
+    # So we define it first or just trust it for now and validation happens later.
+    st.session_state.current_page = target_page
+
 if "simulation_results" not in st.session_state:
     st.session_state.simulation_results = None
 if "simulation_history" not in st.session_state:
     st.session_state.simulation_history = []
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "home"
+
+# Sync URL to match current page (so internal navigation updates URL)
+# This runs on every rerun
+if "current_page" in st.session_state:
+    st.query_params["page"] = st.session_state.current_page
 
 # Import pages
 from pages import home, simulate, running, results, history, comparison

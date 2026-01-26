@@ -94,3 +94,16 @@ class SimulationConfig:
     @property
     def sme(self):
         return self.config_data["sme"]
+
+    @property
+    def interventions(self):
+        return self.config_data["interventions"]
+
+    @property
+    def pso_update(self):
+        return self.config_data["pso_update"]
+
+    @property
+    def belief_update(self):
+        return self.config_data["belief_update"]
+

@@ -24,18 +24,35 @@ def _get_default_values():
         "dur_value": _cfg.simulation["n_steps"],
         "run_value": 1, 
         
-        # Behaviors
-        "compliance_value": int(_cfg.behaviors.get("distribution", {"honest": 0.92})["honest"] * 100),
+        # Behaviors - TCI thresholds (used to calculate honesty ratio)
+        "tci_threshold_priv": _cfg.behaviors["compliance_inclination"]["private"]["threshold"],
+        "tci_threshold_biz": _cfg.behaviors["compliance_inclination"]["business"]["threshold"],
+        
+        # Legacy: Keep compliance_value for backwards compatibility
+        "compliance_value": int(_cfg.behaviors.get("distribution", {"honest": 0.80})["honest"] * 100),
         
         # Enforcement Strategy
         "priv_audit_value": _cfg.enforcement["audit_rate"]["private"] * 100,
         "biz_audit_value": _cfg.enforcement["audit_rate"]["business"] * 100,
-        "audit_depth_value": 0.28 * 100, # Default books prob
+        "audit_depth_value": _cfg.enforcement["audit_type_probs"]["books"] * 100,
         
-        # Service & Trust (New)
-        "phone_sat_value": 80.0, # 80% default
-        "web_qual_value": 3.2, # 3.2/5 default
-        "transparency_value": False, # Default off (p_unfair = 0.3)
+        # Interventions - Deterrence Letters
+        "letter_enabled": _cfg.interventions["letter_deterrence"]["enabled"],
+        "letter_rate_priv": _cfg.interventions["letter_deterrence"]["rate"]["private"] * 100,
+        "letter_rate_biz": _cfg.interventions["letter_deterrence"]["rate"]["business"] * 100,
+        "letter_strategy": _cfg.interventions["letter_deterrence"]["selection_strategy"],
+        
+        # Interventions - Phone Calls
+        "phone_enabled": _cfg.interventions["call"]["enabled"],
+        "phone_rate_priv": _cfg.interventions["call"]["rate"]["private"] * 100,
+        "phone_rate_biz": _cfg.interventions["call"]["rate"]["business"] * 100,
+        "phone_strategy": _cfg.interventions["call"]["selection_strategy"],
+        
+        # Service & Trust
+        "phone_sat_value": _cfg.pso_update["private"]["phone_satisfied_prob"] * 100,
+        "web_qual_priv_value": _cfg.pso_update["private"]["webcare_mean"],
+        "web_qual_biz_value": _cfg.pso_update["business"]["webcare_mean"],
+        "transparency_value": False,  # huba_prob is 0.0 = off
         
         # External Environment (Govt)
         "tax_rate_value": int(_cfg.enforcement["tax_rate"] * 100),
@@ -153,24 +170,16 @@ def synced_slider_input(
         input_val = st.number_input(**input_kwargs)
         
         # Show default value centered below the input
-        # Use negative margin to pull it up closer to input, then position text below
+        # Use simple block centering relative to the 80px container
         st.markdown(
             f'''<div style="
-                position: relative;
-                width: 90px;
-                height: 15px;
+                width: 80px;
+                text-align: center;
                 margin-top: 4px;
-            ">
-                <span style="
-                    position: absolute;
-                    top: 0;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    font-size: 10px;
-                    color: #718096;
-                    white-space: nowrap;
-                ">Default: {default_str}</span>
-            </div>''',
+                font-size: 10px;
+                color: #718096;
+                white-space: nowrap;
+            ">Default: {default_str}</div>''',
             unsafe_allow_html=True
         )
         
@@ -355,8 +364,7 @@ def render():
         if "pop_value" not in st.session_state:
             reset_to_defaults()
 
-        with st.container(border=True):
-            st.markdown("### Simulation Setup")
+        with st.expander("Simulation Setup", expanded=True):
             # st.caption("Define the scale and duration of the simulation")
             st.write("")
 
@@ -400,12 +408,8 @@ def render():
         # =====================================================
         # 2. TAX AUTHORITY STRATEGY (The Controls)
         # =====================================================
-        with st.expander("Tax Authority Strategy", expanded=True):
-            # st.caption("Operational controls available to the Tax Authority")
-            
-            # --- Enforcement Intensity ---
-            st.markdown("#### Enforcement Intensity")
-            
+        # --- Enforcement Intensity ---
+        with st.expander("Enforcement Intensity", expanded=True):
             st.markdown("**Private Audit Rate** (%)", help="Jaarreportage 2024: audit rate for private individuals is 2.4% (manual+automated) or 0.91% (manual). Defaults to 1%.")
             priv_audit_raw = synced_slider_input(
                 label="Priv", key="priv_audit_slider",
@@ -421,7 +425,7 @@ def render():
             st.markdown("**Business Audit Rate** (%)", help="Jaarreportage 2024: audit rate for MKBs is 0.46%. Defaults to 1%.")
             biz_audit_raw = synced_slider_input(
                 label="Biz", key="biz_audit_slider",
-                min_value=0.0, max_value=5.0,
+                min_value=0.0, max_value=10.0,
                 default=DEFAULT_VALUES["biz_audit_value"],
                 step=0.01, input_max=100.0, format_str="%.2f",
                 help_text="Jaarreportage 2024: audit rate for MKBs is 0.46%. Defaults to 1%."
@@ -439,7 +443,7 @@ def render():
             st.caption(f"Strategy: {100-audit_depth_raw:.0f}% Admin Checks / {audit_depth_raw:.0f}% Book Investigations")
 
             st.write("")
-            st.markdown("#### Audit Selection Strategy", help="Method of selecting agents to audit")
+            st.markdown("**Audit Selection Strategy**", help="Method of selecting agents to audit")
             audit_strategy = st.selectbox(
                 "Method",
                 options=["random", "risk_based", "network"],
@@ -453,9 +457,97 @@ def render():
                 help="Choose how agents are selected for audit: Random (uniform), Risk-Based (top risk scores), or Network (closeness centrality)."
             )
 
-            st.write("")
-            st.markdown("#### Service & Prevention", help="Operational controls available to the Tax Authority")
+        # --- Interventions ---
+        with st.expander("Interventions", expanded=False):
+            # Initialize toggle states if not set
+            if "letter_enabled" not in st.session_state:
+                st.session_state.letter_enabled = DEFAULT_VALUES["letter_enabled"]
+            if "phone_enabled" not in st.session_state:
+                st.session_state.phone_enabled = DEFAULT_VALUES["phone_enabled"]
             
+            # --- Deterrence Letters ---
+            st.markdown("**Deterrence Letters**", help="Send warning letters to remind agents about audit risk")
+            letter_enabled = st.toggle("Enable Deterrence Letters", key="letter_enabled")
+            
+            if letter_enabled:
+                st.markdown("Letter Rate - Private (%)", help="Percentage of private agents receiving deterrence letters. Default 2%.")
+                letter_rate_priv_raw = synced_slider_input(
+                    label="LetterPriv", key="letter_rate_priv_slider",
+                    min_value=0.0, max_value=10.0,
+                    default=DEFAULT_VALUES["letter_rate_priv"],
+                    step=0.5, format_str="%.1f",
+                    help_text="Percentage of private agents receiving deterrence letters. Default 2%."
+                )
+                letter_rate_priv = letter_rate_priv_raw / 100.0
+                
+                st.markdown("Letter Rate - Business (%)", help="Percentage of business agents receiving deterrence letters. Default 3%.")
+                letter_rate_biz_raw = synced_slider_input(
+                    label="LetterBiz", key="letter_rate_biz_slider",
+                    min_value=0.0, max_value=10.0,
+                    default=DEFAULT_VALUES["letter_rate_biz"],
+                    step=0.5, format_str="%.1f",
+                    help_text="Percentage of business agents receiving deterrence letters. Default 3%."
+                )
+                letter_rate_biz = letter_rate_biz_raw / 100.0
+                
+                letter_strategy = st.selectbox(
+                    "Letter Selection Strategy",
+                    options=["random", "risk_based", "network"],
+                    index=["random", "risk_based", "network"].index(DEFAULT_VALUES["letter_strategy"]),
+                    format_func=lambda x: {"random": "Random", "risk_based": "Risk-Based", "network": "Network"}.get(x, x),
+                    key="sel_letter_strategy",
+                    label_visibility="collapsed",
+                    help="How to select agents for deterrence letters"
+                )
+            else:
+                letter_rate_priv = 0.0
+                letter_rate_biz = 0.0
+                letter_strategy = "random"
+            
+            st.write("")
+            st.markdown("---")
+            
+            # --- Phone Outreach ---
+            st.markdown("**Phone Outreach**", help="Proactive phone calls to assist and remind agents")
+            phone_outreach_enabled = st.toggle("Enable Phone Outreach", key="phone_enabled")
+            
+            if phone_outreach_enabled:
+                st.markdown("Phone Rate - Private (%)", help="Percentage of private agents receiving phone calls. Default 1%.")
+                phone_rate_priv_raw = synced_slider_input(
+                    label="PhonePriv", key="phone_rate_priv_slider",
+                    min_value=0.0, max_value=10.0,
+                    default=DEFAULT_VALUES["phone_rate_priv"],
+                    step=0.5, format_str="%.1f",
+                    help_text="Percentage of private agents receiving phone calls. Default 1%."
+                )
+                phone_rate_priv = phone_rate_priv_raw / 100.0
+                
+                st.markdown("Phone Rate - Business (%)", help="Percentage of business agents receiving phone calls. Default 3%.")
+                phone_rate_biz_raw = synced_slider_input(
+                    label="PhoneBiz", key="phone_rate_biz_slider",
+                    min_value=0.0, max_value=10.0,
+                    default=DEFAULT_VALUES["phone_rate_biz"],
+                    step=0.5, format_str="%.1f",
+                    help_text="Percentage of business agents receiving phone calls. Default 3%."
+                )
+                phone_rate_biz = phone_rate_biz_raw / 100.0
+                
+                phone_out_strategy = st.selectbox(
+                    "Phone Selection Strategy",
+                    options=["random", "risk_based", "network"],
+                    index=["random", "risk_based", "network"].index(DEFAULT_VALUES["phone_strategy"]),
+                    format_func=lambda x: {"random": "Random", "risk_based": "Risk-Based", "network": "Network"}.get(x, x),
+                    key="sel_phone_strategy",
+                    label_visibility="collapsed",
+                    help="How to select agents for phone outreach"
+                )
+            else:
+                phone_rate_priv = 0.0
+                phone_rate_biz = 0.0
+                phone_out_strategy = "random"
+
+        # --- Service & Prevention ---
+        with st.expander("Service & Prevention", expanded=False):
             st.markdown("**Call Center Quality** (% Satisfied)", help="Probability of satisfaction (>=3 on Likert scale) for telephone interactions as in Jaarreportage 2024. Default 80%.")
             phone_sat = synced_slider_input(
                 label="Phone", key="phone_sat_slider",
@@ -465,23 +557,44 @@ def render():
                 help_text="Probability of satisfaction (>=3 on Likert scale) for telephone interactions as in Jaarreportage 2024. Default 80%."
             )
 
-            st.markdown("**Web Portal Experience** (1-5 Stars)", help="Mean satisfaction score (1-5) for web services as in Jaarreportage 2024. Default 3.2.")
-            web_qual = synced_slider_input(
-                label="Web", key="web_qual_slider",
+            st.markdown("**Web Portal Experience - Private** (1-5 Stars)", help="Mean satisfaction score (1-5) for private individuals' web services. Default 3.2.")
+            web_qual_priv = synced_slider_input(
+                label="WebPriv", key="web_qual_priv_slider",
                 min_value=1.0, max_value=5.0,
-                default=DEFAULT_VALUES["web_qual_value"],
+                default=DEFAULT_VALUES["web_qual_priv_value"],
                 step=0.1, format_str="%.1f",
-                help_text="Mean satisfaction score (1-5) for web services as in Jaarreportage 2024. Default 3.2."
+                help_text="Mean satisfaction score (1-5) for private individuals' web services. Default 3.2."
+            )
+            
+            st.markdown("**Web Portal Experience - Business** (1-5 Stars)", help="Mean satisfaction score (1-5) for business web services. Default 3.5.")
+            web_qual_biz = synced_slider_input(
+                label="WebBiz", key="web_qual_biz_slider",
+                min_value=1.0, max_value=5.0,
+                default=DEFAULT_VALUES["web_qual_biz_value"],
+                step=0.1, format_str="%.1f",
+                help_text="Mean satisfaction score (1-5) for business web services. Default 3.5."
             )
 
             st.write("")
-            is_transparent = st.toggle("Launch Fairness/Transparency Campaign", 
-                                     value=st.session_state.get("transparency_toggle", False),
+            # Initialize transparency toggle state
+            if "transparency_toggle" not in st.session_state:
+                st.session_state.transparency_toggle = DEFAULT_VALUES["transparency_value"]
+            is_transparent = st.toggle("Launch HUBA Campaign (Hulp bij Aangifte)", 
                                      key="transparency_toggle",
-                                     help="Reduces the perception of unfairness when audited (Trust repair)")
+                                     help="Launch the 'Hulp bij Aangifte' campaign to assist citizens with tax returns. Increases Perceived Service Orientation (PSO) and trust.")
+
+
+        # =====================================================
 
         # =====================================================
         # 3. EXTERNAL ENVIRONMENT (Government)
+        # =====================================================
+        st.markdown("""
+            <div style="margin-top: 32px; margin-bottom: 12px;">
+                <span style="font-size: 18px; font-weight: 600; color: #1A1A1A;">Algorithm Configuration</span>
+                <div style="border-bottom: 1px solid #D1D9E0; margin-top: 8px;"></div>
+            </div>
+        """, unsafe_allow_html=True)
         # =====================================================
         with st.expander("Fiscal Environment", expanded=False):
             # st.caption("Fiscal policy and economic conditions set by the Government")
@@ -550,24 +663,42 @@ def render():
             # st.caption("Fine-tune model parameters, social dynamics, and psychometrics")
             
             # Psychometrics
-            st.markdown("#### Traits")
+            st.markdown("#### Agent Behavior")
             st.markdown("**Risk Aversion**", help="Mean for initial sampling from normal distribution clamped between 0.5 to 5: Default Mean 2.0, Std 1.0.")
             risk_aversion = synced_slider_input(
                 label="Risk", key="risk_slider",
                 min_value=0.5, max_value=5.0,
                 default=DEFAULT_VALUES["risk_aversion_value"],
-                step=0.1, help_text="Mean for initial sampling from normal distribution clamped between 0.5 to 5: DefaultMean 2.0, Std 1.0.",
+                step=0.1, help_text="Mean for initial sampling from normal distribution clamped between 0.5 to 5: Default Mean 2.0, Std 1.0.",
             )
             
-            st.markdown("**Baseline Honesty**", help="Percentage of agents initialized as 'honest'.")
-            compliance_raw = synced_slider_input(
-                label="Compliance", key="compliance_slider",
-                min_value=0, max_value=100,
-                default=DEFAULT_VALUES["compliance_value"],
-                step=5,
-                help_text="Percentage of agents initialized as 'honest'."
+            st.write("")
+            st.markdown("**TCI Threshold - Private**", help="Agents with TCI score below this threshold are classified as 'dishonest'. Lower threshold = more honest agents.")
+            tci_threshold_priv = synced_slider_input(
+                label="TCIPriv", key="tci_threshold_priv_slider",
+                min_value=1.0, max_value=5.0,
+                default=DEFAULT_VALUES["tci_threshold_priv"],
+                step=0.1, format_str="%.1f",
+                help_text="TCI threshold for private agents. Default 3.3 (μ=3.87, σ=0.64)."
             )
-            honest_ratio = compliance_raw / 100.0
+            # Calculate honesty ratio using normal CDF
+            from scipy.stats import norm
+            priv_mean, priv_std = 3.87, 0.64
+            priv_honest_pct = (1 - norm.cdf(tci_threshold_priv, priv_mean, priv_std)) * 100
+            st.caption(f"~{priv_honest_pct:.0f}% honest (μ={priv_mean}, σ={priv_std})")
+            
+            st.markdown("**TCI Threshold - Business**", help="Agents with TCI score below this threshold are classified as 'dishonest'. Lower threshold = more honest agents.")
+            tci_threshold_biz = synced_slider_input(
+                label="TCIBiz", key="tci_threshold_biz_slider",
+                min_value=1.0, max_value=5.0,
+                default=DEFAULT_VALUES["tci_threshold_biz"],
+                step=0.1, format_str="%.1f",
+                help_text="TCI threshold for business agents. Default 3.6 (μ=4.07, σ=0.60)."
+            )
+            biz_mean, biz_std = 4.07, 0.60
+            biz_honest_pct = (1 - norm.cdf(tci_threshold_biz, biz_mean, biz_std)) * 100
+            st.caption(f"~{biz_honest_pct:.0f}% honest (μ={biz_mean}, σ={biz_std})")
+
 
             st.markdown("#### Social Dynamics")
             st.markdown("Social Influence", help="Strength of social influence (0-1). 1 = fully adopts median of neighbors. 0 = independent.")
@@ -758,6 +889,9 @@ def render():
                         st.error(f"Invalid JSON file: {e}")
                     except Exception as e:
                         st.error(f"Error loading config: {e}")
+            
+            if uploaded_config:
+                 st.markdown(f"<div style='text-align: center; color: #333333; font-size: 14px; margin-top: -10px; font-weight: 500;'>Loaded: {uploaded_config.name}</div>", unsafe_allow_html=True)
 
         with col_start:
             if st.button("Start Simulation", type="primary", use_container_width=True, key="btn_start"):
@@ -769,8 +903,9 @@ def render():
                     "n_runs": n_runs,
                     "business_ratio": business_ratio,
                     
-                    # Behaviors
-                    "honest_ratio": honest_ratio,
+                    # Behaviors - TCI thresholds
+                    "tci_threshold_private": tci_threshold_priv,
+                    "tci_threshold_business": tci_threshold_biz,
                     
                     # Enforcement
                     "tax_rate": tax_rate,
@@ -778,12 +913,26 @@ def render():
                     "audit_strategy": audit_strategy,
                     "audit_rate_private": audit_private,
                     "audit_rate_business": audit_business,
-                    "audit_depth_books": audit_depth_books, # New: Pass ratio
+                    "audit_depth_books": audit_depth_books,
                     
-                    # Service (New)
+                    # Interventions - Deterrence Letters
+                    "letter_enabled": letter_enabled,
+                    "letter_rate_private": letter_rate_priv,
+                    "letter_rate_business": letter_rate_biz,
+                    "letter_strategy": letter_strategy,
+                    
+                    # Interventions - Phone Outreach
+                    "phone_enabled": phone_outreach_enabled,
+                    "phone_rate_private": phone_rate_priv,
+                    "phone_rate_business": phone_rate_biz,
+                    "phone_strategy": phone_out_strategy,
+                    
+                    # Service
                     "phone_sat": phone_sat,
-                    "web_qual": web_qual,
+                    "web_qual_private": web_qual_priv,
+                    "web_qual_business": web_qual_biz,
                     "transparency": is_transparent,
+
                     
                     # Expert - Network
                     "homophily": homophily,

@@ -167,7 +167,8 @@ section[data-testid="stMain"]>div {
     font-size: 14px !important;
     font-weight: 500 !important;
     border-radius: 10px !important;
-    padding: 12px 24px !important;
+    padding: 8px 16px !important;
+    white-space: nowrap !important;
     transition: all 0.2s ease !important;
     border: none !important;
 }
@@ -648,4 +649,97 @@ button[id*="_reset"]:hover {
     z-index: 101;
     /* Above shadow */
     filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.05));
+}
+
+/* ===== CONFIG LOADER STYLING ===== */
+/* Extremely specific targeting for the config loader on simulate page */
+
+/* 1. Reset the dropzone container to be invisible/seamless */
+.st-key-config_uploader [data-testid="stFileUploaderDropzone"] {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: unset !important;
+}
+
+/* 2. Hide the instructions ("Drag and drop file here", "Limit 200MB") */
+.st-key-config_uploader [data-testid="stFileUploaderDropzoneInstructions"] {
+    display: none !important;
+}
+
+.st-key-config_uploader [data-testid="stFileUploaderDropzone"] small {
+    display: none !important;
+}
+
+.st-key-config_uploader [data-testid="stFileUploaderDropzone"] span {
+    display: none !important;
+}
+
+/* 3. Style the "Browse files" button to look like a Secondary Action Button (White) */
+.st-key-config_uploader button {
+    width: 100% !important;
+    background: white !important;
+    border: 1px solid var(--border) !important;
+    color: transparent !important;
+    /* Hide "Browse files" text */
+    border-radius: 10px !important;
+    padding: 8px 16px !important;
+    font-size: 0 !important;
+    /* Hide "Browse files" text */
+    font-weight: 500 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.2s ease !important;
+    /* Ensure text is centered and visible */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+}
+
+/* Inject "Load Config" text */
+.st-key-config_uploader button::after {
+    content: "Load Config" !important;
+    font-size: 16px !important;
+    color: var(--text-dark) !important;
+    visibility: visible !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    white-space: nowrap !important;
+    font-weight: 500 !important;
+}
+
+/* Hover state */
+.st-key-config_uploader button:hover {
+    background: #f0f7fa !important;
+    border-color: var(--primary) !important;
+    /* color: var(--primary) !important;  <- Don't set color here, it affects the transparent text */
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.st-key-config_uploader button:hover::after {
+    color: var(--primary) !important;
+}
+
+/* Active/Focus state */
+.st-key-config_uploader button:active,
+.st-key-config_uploader button:focus {
+    background: #e1eef5 !important;
+    border-color: var(--primary) !important;
+    color: transparent !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(1, 104, 155, 0.2) !important;
+}
+
+.st-key-config_uploader button:active::after,
+.st-key-config_uploader button:focus::after {
+    color: var(--primary) !important;
+}
+
+/* 4. Hide the uploaded file list entirely (User requested just text instead) */
+.st-key-config_uploader [data-testid="stFileUploaderFile"] {
+    display: none !important;
 }
