@@ -38,11 +38,17 @@
         "huba_delta": 1.0,
         "private": {
             "huba_prob": 0.0,
-            "phone_prob": 0.5
+            "phone_prob": 0.5,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.2,
+            "webcare_std": 1.0
         },
         "business": {
             "huba_prob": 0.0,
-            "phone_prob": 0.5
+            "phone_prob": 0.5,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.5,
+            "webcare_std": 1.0
         }
     },
     "norm_update": {
@@ -126,6 +132,7 @@
                 "private": 0.01,
                 "business": 0.03
             },
+            "selection_strategy": "risk_based",
             "satisfied_prob": 0.8,
             "effects": {
                 "satisfied": {

@@ -31,6 +31,7 @@
                 "private": 0.01,
                 "business": 0.03
             },
+            "selection_strategy": "risk_based",
             "satisfied_prob": 0.8,
             "effects": {
                 "satisfied": {

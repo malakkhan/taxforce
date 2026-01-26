@@ -57,11 +57,17 @@
         "huba_delta": 1.0,
         "private": {
             "huba_prob": 0.0,
-            "phone_prob": 0.5
+            "phone_prob": 0.5,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.2,
+            "webcare_std": 1.0
         },
         "business": {
             "huba_prob": 0.0,
-            "phone_prob": 0.5
+            "phone_prob": 0.5,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.5,
+            "webcare_std": 1.0
         }
     },
     "social": {
