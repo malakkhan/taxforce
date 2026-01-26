@@ -1,0 +1,155 @@
+{
+    "simulation": {
+        "n_agents": 5000
+    },
+    "traits": {
+        "business": {
+            "subjective_audit_prob": {
+                "mean": 25.0,
+                "std": 5.0
+            },
+            "personal_norms": {
+                "mean": 4.3,
+                "std": 0.8
+            }
+        },
+        "private": {
+            "personal_norms": {
+                "mean": 4.3,
+                "std": 0.8
+            },
+            "subjective_audit_prob": {
+                "mean": 30.0,
+                "std": 10.0
+            }
+        }
+    },
+    "social": {
+        "social_influence": 0.10
+    },
+    "belief_update": {
+        "audit_prob_drift_rate": 0.10
+    },
+    "pso_update": {
+        "pso_drift_rate": 0.25,
+        "phone_delta_satisfied": 0.4,
+        "phone_delta_dissatisfied": 1.0,
+        "webcare_delta": 0.2,
+        "huba_delta": 1.0,
+        "private": {
+            "huba_prob": 0.0,
+            "phone_prob": 0.5
+        },
+        "business": {
+            "huba_prob": 0.0,
+            "phone_prob": 0.5
+        }
+    },
+    "norm_update": {
+        "social_norm_scale": {
+            "private": 0.0,
+            "business": 0.0
+        },
+        "societal_norm_scale": {
+            "private": 0.0,
+            "business": 0.0
+        }
+    },
+    "behaviors": {
+        "compliance_inclination": {
+            "private": {
+                "threshold": 3.3
+            },
+            "business": {
+                "threshold": 3.6
+            }
+        }
+    },
+    "error_model": {
+        "enabled": true,
+        "private": {
+            "base": 0.005
+        },
+        "business": {
+            "base": 0.35,
+            "advisor_reduction": 0.05
+        },
+        "magnitude": {
+            "min": 0.12,
+            "max": 0.23
+        },
+        "pso_reduction_factor": 0.15,
+        "trust_reduction_factor": 0.10,
+        "norms_reduction_factor": 0.05
+    },
+    "sme": {
+        "opportunity": {
+            "base": 0.35
+        }
+    },
+    "private": {
+        "income": {
+            "mean": 41000,
+            "std": 5000
+        },
+        "opportunity": 0.10
+    },
+    "filters": {
+        "tci_weight": {
+            "honest": 1.0,
+            "dishonest": 0.75
+        }
+    },
+    "interventions": {
+        "audit": {
+            "enabled": true,
+            "rate": {
+                "private": 0.01,
+                "business": 0.01
+            }
+        },
+        "letter_deterrence": {
+            "enabled": true,
+            "rate": {
+                "private": 0.02,
+                "business": 0.03
+            },
+            "effects": {
+                "subjective_audit_prob_permanent": 1.0,
+                "subjective_audit_prob_temporary": 12.0,
+                "trust_delta": -0.1
+            }
+        },
+        "call": {
+            "enabled": true,
+            "rate": {
+                "private": 0.01,
+                "business": 0.03
+            },
+            "satisfied_prob": 0.8,
+            "effects": {
+                "satisfied": {
+                    "pso_delta": 0.3,
+                    "trust_delta": 0.2,
+                    "subjective_audit_prob_temporary": 8.0,
+                    "subjective_audit_prob_permanent": 1.0
+                },
+                "dissatisfied": {
+                    "pso_delta": -0.2,
+                    "trust_delta": -0.1
+                }
+            }
+        },
+        "information": {
+            "enabled": true,
+            "rate": {
+                "private": 0.03,
+                "business": 0.05
+            },
+            "effects": {
+                "personal_norm_delta": 0.15,
+                "pso_delta": 0.15
+            }
+        }
+    }
+}

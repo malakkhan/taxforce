@@ -8,15 +8,16 @@ from core.strategies import get_audit_strategy
 class AuditIntervention(InterventionStrategy):
     def select(self, agents: list, config: dict) -> list:
         rates = config["rate"]
-        strategy = get_audit_strategy(config["selection_strategy"])
+        strategy_name = config["selection_strategy"]
+        strategy = get_audit_strategy(strategy_name)
         
         private = [a for a in agents if a.occupation == "private"]
         business = [a for a in agents if a.occupation == "business"]
         
-        selected = []
-        selected.extend(strategy.select(private, rates["private"]))
-        selected.extend(strategy.select(business, rates["business"]))
-        return selected
+        selected_private = strategy.select(private, rates["private"])
+        selected_business = strategy.select(business, rates["business"])
+        
+        return selected_private + selected_business
     
     def apply(self, agent, model, config: dict) -> dict:
         was_compliant = agent.is_compliant
@@ -27,12 +28,11 @@ class AuditIntervention(InterventionStrategy):
         outcome = {"compliant": was_compliant, "penalty": penalty}
         agent.interventions["audit"] = outcome
         
-        if hasattr(agent, "update_audit_history"):
-            probs = config["audit_type_probs"]
-            audit_type = np.random.choice(
-                ["administratief", "boekenonderzoek"],
-                p=[probs["admin"], probs["books"]]
-            )
-            agent.update_audit_history(audit_type)
+        probs = config["audit_type_probs"]
+        audit_type = np.random.choice(
+            ["administratief", "boekenonderzoek"],
+            p=[probs["admin"], probs["books"]]
+        )
+        agent.update_audit_history(audit_type)
         
         return outcome

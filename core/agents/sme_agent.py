@@ -2,6 +2,7 @@ import numpy as np
 from .base_agent import BaseAgent, sample_clamped
 from core.simcache import sim_cache
 
+
 class SMEAgent(BaseAgent):
     def __init__(self, model):
         super().__init__(model, occupation="business")
@@ -9,6 +10,7 @@ class SMEAgent(BaseAgent):
         self.size_class = self.sample_size_class()
         self.turnover = self.sample_turnover()
         self.true_income = self.sample_income()
+        self.declared_income = self.true_income
         self.sector, self.branch = self.sample_sector_branch()
         self.cash_intensity = self.sample_cash_intensity()
         self.digitalization = self.sample_digitalization()
@@ -37,28 +39,24 @@ class SMEAgent(BaseAgent):
         margin = self.sme["profit_margin"]
         return self.turnover * np.random.uniform(margin["min"], margin["max"])
 
-    # TODO: Add proper sector weight distribution from CBS numbers
     def sample_sector_branch(self):
-        sector_probs = self.sme.get("sector_probs", {})
-        if sector_probs:
-            sectors = list(sector_probs.keys())
-            probs = list(sector_probs.values())
-            total = sum(probs)
-            probs = [p / total for p in probs]
-            sector = np.random.choice(sectors, p=probs)
-        else:
-            sector = np.random.choice(list(self.sme["sectors"].keys()))
+        sector_probs = self.sme["sector_probs"]
+        sectors = list(sector_probs.keys())
+        probs = list(sector_probs.values())
+        total = sum(probs)
+        probs = [p / total for p in probs]
+        sector = np.random.choice(sectors, p=probs)
         
         sector_config = self.sme["sectors"][sector]
-        branches = sector_config.get("branches", [f"{sector}_Branch"])
+        branches = sector_config["branches"]
         branch = np.random.choice(branches) if branches else f"{sector}_Branch"
         return sector, branch
 
     def sample_cash_intensity(self):
         sector_config = self.sme["sectors"][self.sector]
-        high_risk = sector_config.get("high_risk_branches", [])
-        if self.branch in high_risk: return True
-        
+        high_risk = sector_config["high_risk_branches"]
+        if self.branch in high_risk: 
+            return True
         return np.random.random() < sector_config["cash_prob"]
 
     def sample_digitalization(self):
@@ -88,7 +86,7 @@ class SMEAgent(BaseAgent):
         if sector_config["risk"] == "high":
             r += sme["delta_sector_high_risk"]
         
-        high_risk_branches = sector_config.get("high_risk_branches", [])
+        high_risk_branches = sector_config["high_risk_branches"]
         if self.branch in high_risk_branches:
             r += sme["delta_branch_high_risk"]
         
@@ -105,6 +103,7 @@ class SMEAgent(BaseAgent):
         
         hist_deltas = {"boekenonderzoek": sme["delta_audit_books"], "administratief": sme["delta_audit_admin"]}
         r += hist_deltas.get(self.audit_history, 0)
+        
         return float(np.clip(r, 0.05, 0.90))
 
     @sim_cache
@@ -118,6 +117,15 @@ class SMEAgent(BaseAgent):
         digi_adj = {"Low": opp["low_digi_bonus"], "High": -opp["high_digi_penalty"]}
         phi += digi_adj.get(self.digitalization, 0)
         
+        if self.size_class == "Micro":
+            phi += opp["micro_bonus"]
+        elif self.size_class == "Medium":
+            phi += opp["medium_penalty"]
+        
+        sector_config = self.sme["sectors"][self.sector]
+        if sector_config["risk"] == "high":
+            phi += opp["high_risk_sector_bonus"]
+        
         return float(np.clip(phi, opp["min"], opp["max"]))
 
     def update_audit_history(self, audit_type):
@@ -126,9 +134,9 @@ class SMEAgent(BaseAgent):
             self.base_risk_score = self.calculate_base_risk()
 
     def apply_sector_risk_aversion(self):
-        sector_config = self.sme["sectors"].get(self.sector, {})
+        sector_config = self.sme["sectors"][self.sector]
         if "risk_aversion" in sector_config:
             ra = sector_config["risk_aversion"]
             self.traits.risk_aversion = sample_clamped(
-                ra["mean"], ra["std"], ra.get("min", 0.5), ra.get("max", 5.0)
+                ra["mean"], ra["std"], ra["min"], ra["max"]
             )

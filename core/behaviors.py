@@ -6,6 +6,7 @@ from core.filters import (
     rational_choice_filter,
     social_influence_filter,
 )
+from core.errors import apply_error
 
 
 class BehaviorStrategy:
@@ -14,20 +15,27 @@ class BehaviorStrategy:
 
 
 class HonestBehavior(BehaviorStrategy):
-    def decide(self, agent):
-        return agent.true_income
+    def decide(self, agent, initial_step=False):
+        if initial_step:
+            return agent.true_income
+        config = agent.model.config.config_data
+        declared, error_occurred, error_amount = apply_error(agent, config)
+        agent.error_amount = error_amount
+        return declared
 
 
 class DishonestBehavior(BehaviorStrategy):
-    def decide(self, agent):
+    def decide(self, agent, initial_step=False):
+        agent.error_amount = 0.0
         max_concealable = opportunity_filter(agent)
         willingness = normative_filter(agent, max_concealable)
-        adjusted_willingness = social_influence_filter(agent, willingness, max_concealable)
-        final_evasion = rational_choice_filter(agent, adjusted_willingness)
+
+        if not initial_step:
+            willingness = social_influence_filter(agent, willingness, max_concealable)
+        final_evasion = rational_choice_filter(agent, willingness)
         
         declared = agent.true_income - final_evasion
         return max(0.0, declared)
-
 
 BEHAVIORS = {
     "honest": HonestBehavior,
@@ -55,4 +63,3 @@ def assign_behavior(config, occupation: str) -> BehaviorStrategy:
         behavior_type = "dishonest" if score < params["threshold"] else "honest"
     
     return create_behavior(behavior_type)
-

@@ -31,17 +31,16 @@
     "belief_update": {
         "mu": 0.85,
         "audit_signal_strength": 0.30,
-        "perception_weight": 0.05,
-        "audit_prob_drift_rate": 0.10
+        "perception_weight": 0.05
     },
     "norm_update": {
         "social_norm_scale": {
-            "private": 0.0,
-            "business": 0.0
+            "private": 0.53,
+            "business": 0.51
         },
         "societal_norm_scale": {
-            "private": 0.0,
-            "business": 0.0
+            "private": 0.101,
+            "business": 0.098
         }
     },
     "trust_update": {
@@ -50,22 +49,27 @@
     },
     "pso_update": {
         "sigma_pso": 0.68,
-        "pso_drift_rate": 0.25,
-        "phone_delta_satisfied": 0.4,
+        "pso_drift_rate": 0.0,
+        "phone_delta_satisfied": 1.0,
         "phone_delta_dissatisfied": 1.0,
-        "webcare_delta": 0.2,
+        "webcare_delta": 0.5,
         "huba_delta": 1.0,
         "private": {
-            "huba_prob": 0.0,
-            "phone_prob": 0.5
+            "phone_prob": 0.527,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.2,
+            "webcare_std": 1.0,
+            "huba_prob": 0.004
         },
         "business": {
-            "huba_prob": 0.0,
-            "phone_prob": 0.5
+            "phone_prob": 0.92,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.5,
+            "webcare_std": 1.0
         }
     },
     "social": {
-        "social_influence": 0.10,
+        "social_influence": 0.5,
         "pso_boost": 0.0,
         "trust_boost": 0.0
     }

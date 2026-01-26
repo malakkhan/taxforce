@@ -2,24 +2,24 @@
     "traits": {
         "private": {
             "personal_norms": {
-                "mean": 3.40,
-                "std": 1.15,
+                "mean": 4.3,
+                "std": 0.8,
                 "min": 1,
                 "max": 5
             },
             "subjective_audit_prob": {
-                "mean": 20,
-                "std": 15,
+                "mean": 30.0,
+                "std": 10.0,
                 "min": 0,
                 "max": 100
             },
-            "perceived_service_orientation": {
+            "pso": {
                 "mean": 3.22,
                 "std": 0.68,
                 "min": 1,
                 "max": 5
             },
-            "perceived_trustworthiness": {
+            "p_trust": {
                 "mean": 3.37,
                 "std": 0.69,
                 "min": 1,
@@ -46,24 +46,24 @@
         },
         "business": {
             "personal_norms": {
-                "mean": 3.82,
-                "std": 1.04,
+                "mean": 4.3,
+                "std": 0.8,
                 "min": 1,
                 "max": 5
             },
             "subjective_audit_prob": {
-                "mean": 22,
-                "std": 15.0,
+                "mean": 25.0,
+                "std": 5.0,
                 "min": 0,
                 "max": 100
             },
-            "perceived_service_orientation": {
+            "pso": {
                 "mean": 3.18,
                 "std": 0.67,
                 "min": 1,
                 "max": 5
             },
-            "perceived_trustworthiness": {
+            "p_trust": {
                 "mean": 3.37,
                 "std": 0.69,
                 "min": 1,
@@ -105,6 +105,10 @@
                 "PT": 0.14,
                 "PSO": 0.11
             }
+        },
+        "tci_weight": {
+            "honest": 1.0,
+            "dishonest": 0.75
         }
     }
 }

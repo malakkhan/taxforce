@@ -3,6 +3,7 @@ Simulate Page - Configure simulation settings.
 Three-tier settings hierarchy with nested expanders.
 Professional design for Tax Authority dashboard.
 """
+import json
 import streamlit as st
 import streamlit_nested_layout  # Enables nested expanders
 import sys
@@ -60,8 +61,8 @@ def _get_default_values():
         "priv_pn_value": _cfg.traits["private"]["personal_norms"]["mean"],
         "priv_sn_value": _cfg.traits["private"]["social_norms"]["mean"],
         "priv_stn_value": _cfg.traits["private"]["societal_norms"]["mean"],
-        "priv_pso_value": _cfg.traits["private"]["perceived_service_orientation"]["mean"],
-        "priv_pt_value": _cfg.traits["private"]["perceived_trustworthiness"]["mean"],
+        "priv_pso_value": _cfg.traits["private"]["pso"]["mean"],
+        "priv_pt_value": _cfg.traits["private"]["p_trust"]["mean"],
         "priv_income_value": _cfg.private["income"]["mean"],
         "priv_audit_belief_value": float(_cfg.traits["private"]["subjective_audit_prob"]["mean"]),
         
@@ -69,8 +70,8 @@ def _get_default_values():
         "biz_pn_value": _cfg.traits["business"]["personal_norms"]["mean"],
         "biz_sn_value": _cfg.traits["business"]["social_norms"]["mean"],
         "biz_stn_value": _cfg.traits["business"]["societal_norms"]["mean"],
-        "biz_pso_value": _cfg.traits["business"]["perceived_service_orientation"]["mean"],
-        "biz_pt_value": _cfg.traits["business"]["perceived_trustworthiness"]["mean"],
+        "biz_pso_value": _cfg.traits["business"]["pso"]["mean"],
+        "biz_pt_value": _cfg.traits["business"]["p_trust"]["mean"],
         "biz_audit_belief_value": float(_cfg.traits["business"]["subjective_audit_prob"]["mean"]),
         
         # SME Risk
@@ -187,6 +188,15 @@ def synced_slider_input(
 def render():
     """Render the simulation configuration page with tiered settings."""
     
+    # =====================================================
+    # APPLY PENDING CONFIG (must happen BEFORE widgets render)
+    # =====================================================
+    if "_pending_config" in st.session_state:
+        config_data = st.session_state.pop("_pending_config")
+        config_name = st.session_state.pop("_pending_config_name", "config")
+        _apply_config_to_state(config_data)
+        st.toast(f"✅ Loaded: {config_name}")
+    
     # Create centered content area
     left_spacer, content, right_spacer = st.columns([1, 4, 1])
     
@@ -236,7 +246,7 @@ def render():
             st.markdown("**Population Size** · Number of agents", help="Literature uses population sizes from 1000 to 5000. Larger populations obey statistical properties better but run slower.")
             n_agents = synced_slider_input(
                 label="Pop", key="pop_slider",
-                min_value=500, max_value=2500,
+                min_value=500, max_value=10000,
                 default=DEFAULT_VALUES["pop_value"],
                 step=50,
                 input_max=100000,
@@ -531,7 +541,35 @@ def render():
         # Custom tight separator matching results.py
         st.markdown('<hr style="margin-top: 12px; margin-bottom: 8px; border: none; border-top: 1px solid #D1D9E0;">', unsafe_allow_html=True)
         
-        _, col_start = st.columns([5, 2])
+        col_load, _, col_start = st.columns([2, 3, 2])
+        
+        with col_load:
+            uploaded_config = st.file_uploader(
+                "Load Config",
+                type=["json"],
+                key="config_uploader",
+                label_visibility="collapsed",
+                help="Load a configuration JSON file to populate all settings"
+            )
+            if uploaded_config is not None:
+                # Create a unique identifier for this file upload
+                file_id = f"{uploaded_config.name}_{uploaded_config.size}"
+                # Only process if this is a NEW file (not already processed)
+                if st.session_state.get("_last_loaded_config_id") != file_id:
+                    try:
+                        # Parse the uploaded JSON
+                        config_data = json.load(uploaded_config)
+                        # Mark this file as processed
+                        st.session_state["_last_loaded_config_id"] = file_id
+                        # Store in session state - will be applied on next render BEFORE widgets
+                        st.session_state["_pending_config"] = config_data
+                        st.session_state["_pending_config_name"] = uploaded_config.name
+                        # Rerun to apply the config before widgets are instantiated
+                        st.rerun()
+                    except json.JSONDecodeError as e:
+                        st.error(f"Invalid JSON file: {e}")
+                    except Exception as e:
+                        st.error(f"Error loading config: {e}")
 
         with col_start:
             if st.button("Start Simulation", type="primary", use_container_width=True, key="btn_start"):
@@ -617,81 +655,207 @@ def render():
                 st.session_state.current_page = "running"
                 st.rerun()
 
+def _apply_config_to_state(config_data: dict):
+    """
+    Load a nested JSON config (as used by core/configs/*.json) into session state.
+    Merges with defaults first, then maps to widget keys with proper clamping.
+    """
+    if not config_data:
+        return
+    
+    # Merge with defaults to fill in any missing values
+    from core.config import SimulationConfig, deep_merge
+    defaults = SimulationConfig.load_defaults()
+    merged = deep_merge(defaults.copy(), config_data)
+    
+    # Helper to clamp values within slider ranges
+    def clamp(val, min_val, max_val):
+        return max(min_val, min(max_val, val))
+    
+    # Helper to safely set state with type handling
+    def set_state(key, value):
+        st.session_state[key] = value
+        # Note: We don't set *_input keys here because the synced_slider_input
+        # number inputs read from the main slider key's session state directly
+    
+    # =====================================================
+    # SIMULATION SETUP
+    # =====================================================
+    sim = merged.get("simulation", {})
+    set_state("pop_slider", clamp(sim.get("n_agents", 1000), 500, 10000))
+    set_state("dur_slider", clamp(sim.get("n_steps", 50), 10, 100))
+    # n_runs not in config files, keep default
+    
+    # =====================================================
+    # TAX AUTHORITY STRATEGY - ENFORCEMENT
+    # =====================================================
+    enf = merged.get("enforcement", {})
+    audit_rate = enf.get("audit_rate", {})
+    
+    # Private audit rate (stored as decimal, widget expects %) - slider max is 10%
+    priv_audit = audit_rate.get("private", 0.01) * 100
+    set_state("priv_audit_slider", clamp(priv_audit, 0.0, 10.0))
+    
+    # Business audit rate (stored as decimal, widget expects %) - slider max is 5%
+    biz_audit = audit_rate.get("business", 0.01) * 100
+    set_state("biz_audit_slider", clamp(biz_audit, 0.0, 5.0))
+    
+    # Audit depth (books probability) - stored as decimal in audit_type_probs
+    audit_type_probs = enf.get("audit_type_probs", {})
+    books_prob = audit_type_probs.get("books", 0.28) * 100
+    set_state("audit_depth_slider", clamp(books_prob, 0.0, 100.0))
+    
+    # Audit strategy
+    strategy = enf.get("audit_strategy", "random")
+    if strategy in ["random", "risk_based", "network"]:
+        set_state("sel_audit", strategy)
+    
+    # =====================================================
+    # TAX AUTHORITY STRATEGY - SERVICE & PREVENTION
+    # =====================================================
+    pso_update = merged.get("pso_update", {})
+    priv_pso = pso_update.get("private", {})
+    
+    # Phone satisfaction (stored as decimal probability, widget expects %)
+    phone_sat = priv_pso.get("phone_satisfied_prob", 0.80) * 100
+    set_state("phone_sat_slider", clamp(phone_sat, 50.0, 99.0))
+    
+    # Web quality (stored as mean 1-5 rating)
+    web_qual = priv_pso.get("webcare_mean", 3.2)
+    set_state("web_qual_slider", clamp(web_qual, 1.0, 5.0))
+    
+    # Transparency toggle (based on p_unfair in trust_update)
+    trust_upd = merged.get("trust_update", {})
+    p_unfair = trust_upd.get("p_unfair", 0.30)
+    # If p_unfair is low (< 0.2), assume transparency is ON
+    set_state("transparency_toggle", p_unfair < 0.2)
+    
+    # =====================================================
+    # FISCAL ENVIRONMENT
+    # =====================================================
+    # Tax rate (stored as decimal, widget expects integer %)
+    tax_rate = int(enf.get("tax_rate", 0.30) * 100)
+    set_state("tax_slider", clamp(tax_rate, 10, 60))
+    
+    # Penalty rate (stored as multiplier)
+    penalty = enf.get("penalty_rate", 3.0)
+    set_state("penalty_slider", clamp(penalty, 1.0, 5.0))
+    
+    # Business ratio (stored as decimal, widget expects %)
+    biz_ratio = sim.get("business_ratio", 0.179) * 100
+    biz_ratio_clamped = clamp(biz_ratio, 0, 100)
+    # biz_ratio uses a custom sync mechanism via biz_ratio_value
+    st.session_state.biz_ratio_value = biz_ratio_clamped
+    
+    # =====================================================
+    # EXPERT CALIBRATION - TRAITS
+    # =====================================================
+    traits = merged.get("traits", {})
+    priv_traits = traits.get("private", {})
+    biz_traits = traits.get("business", {})
+    
+    # Risk aversion (from private traits)
+    risk_av = priv_traits.get("risk_aversion", {}).get("mean", 2.0)
+    set_state("risk_slider", clamp(risk_av, 0.5, 5.0))
+    
+    # Honest ratio (from behaviors distribution)
+    behaviors = merged.get("behaviors", {})
+    dist = behaviors.get("distribution", {})
+    honest = int(dist.get("honest", 0.80) * 100)
+    set_state("compliance_slider", clamp(honest, 0, 100))
+    
+    # =====================================================
+    # EXPERT CALIBRATION - SOCIAL DYNAMICS
+    # =====================================================
+    social = merged.get("social", {})
+    soc_inf = social.get("social_influence", 0.5)
+    set_state("soc_inf_slider", clamp(soc_inf, 0.0, 1.0))
+    
+    network = merged.get("network", {})
+    homophily = network.get("homophily", 0.80)
+    set_state("net_homo", clamp(homophily, 0.0, 1.0))
+    
+    degree_mean = network.get("degree_mean", 86.27)
+    set_state("net_deg", clamp(degree_mean, 5.0, 300.0))
+    
+    # =====================================================
+    # DEEP TRAIT CALIBRATION - PRIVATE
+    # =====================================================
+    pn_priv = priv_traits.get("personal_norms", {}).get("mean", 3.40)
+    set_state("sl_priv_pn", clamp(pn_priv, 1.0, 5.0))
+    
+    sn_priv = priv_traits.get("social_norms", {}).get("mean", 3.42)
+    set_state("sl_priv_sn", clamp(sn_priv, 1.0, 5.0))
+    
+    stn_priv = priv_traits.get("societal_norms", {}).get("mean", 3.97)
+    set_state("sl_priv_stn", clamp(stn_priv, 1.0, 5.0))
+    
+    pso_priv = priv_traits.get("pso", {}).get("mean", 3.22)
+    set_state("sl_priv_pso", clamp(pso_priv, 1.0, 5.0))
+    
+    pt_priv = priv_traits.get("p_trust", {}).get("mean", 3.37)
+    set_state("sl_priv_pt", clamp(pt_priv, 1.0, 5.0))
+    
+    audit_belief_priv = priv_traits.get("subjective_audit_prob", {}).get("mean", 10.0)
+    set_state("sl_priv_audit_belief", clamp(audit_belief_priv, 0.0, 100.0))
+    
+    # =====================================================
+    # DEEP TRAIT CALIBRATION - BUSINESS
+    # =====================================================
+    pn_biz = biz_traits.get("personal_norms", {}).get("mean", 3.82)
+    set_state("sl_biz_pn", clamp(pn_biz, 1.0, 5.0))
+    
+    sn_biz = biz_traits.get("social_norms", {}).get("mean", 3.82)
+    set_state("sl_biz_sn", clamp(sn_biz, 1.0, 5.0))
+    
+    stn_biz = biz_traits.get("societal_norms", {}).get("mean", 4.12)
+    set_state("sl_biz_stn", clamp(stn_biz, 1.0, 5.0))
+    
+    pso_biz = biz_traits.get("pso", {}).get("mean", 3.18)
+    set_state("sl_biz_pso", clamp(pso_biz, 1.0, 5.0))
+    
+    pt_biz = biz_traits.get("p_trust", {}).get("mean", 3.37)
+    set_state("sl_biz_pt", clamp(pt_biz, 1.0, 5.0))
+    
+    audit_belief_biz = biz_traits.get("subjective_audit_prob", {}).get("mean", 22.0)
+    set_state("sl_biz_audit_belief", clamp(audit_belief_biz, 0.0, 100.0))
+
 def load_params_into_state(params: dict):
     """
-    Load configuration dictionary into session state widgets.
-    Maps the nested params structure back to the flat widget keys.
+    Legacy function for loading flat simulation_params dict into state.
+    Kept for backward compatibility.
     """
     if not params:
         return
 
-    # Helper to safely set state if key exists or needed
+    def clamp(val, min_val, max_val):
+        return max(min_val, min(max_val, val))
+
     def set_state(key, value):
         st.session_state[key] = value
-        # Also set the input counterpart for synced widgets if it exists
-        if f"{key}_input" in st.session_state:
-            st.session_state[f"{key}_input"] = value
 
-    # --- Tier 1: Essential ---
-    set_state("pop_slider", params.get("n_agents", 1000))
-    set_state("dur_slider", params.get("n_steps", 50))
-    set_state("run_slider", params.get("n_runs", 1))
+    # Simulation
+    set_state("pop_slider", clamp(params.get("n_agents", 1000), 500, 2500))
+    set_state("dur_slider", clamp(params.get("n_steps", 50), 10, 100))
+    set_state("run_slider", clamp(params.get("n_runs", 1), 1, 10))
     
-    set_state("tax_slider", int(params.get("tax_rate", 0.3) * 100))
-    set_state("penalty_slider", params.get("penalty_rate", 1.5))
-    set_state("compliance_slider", int(params.get("honest_ratio", 0.92) * 100))
+    # Enforcement
+    set_state("tax_slider", clamp(int(params.get("tax_rate", 0.3) * 100), 10, 60))
+    set_state("penalty_slider", clamp(params.get("penalty_rate", 3.0), 1.0, 5.0))
+    set_state("compliance_slider", clamp(int(params.get("honest_ratio", 0.80) * 100), 0, 100))
     
-    set_state("sel_audit", params.get("audit_strategy", "random"))
-    set_state("priv_audit_slider", params.get("audit_rate_private", 0.05) * 100)
-    set_state("biz_audit_slider", params.get("audit_rate_business", 0.10) * 100)
+    strategy = params.get("audit_strategy", "random")
+    if strategy in ["random", "risk_based", "network"]:
+        set_state("sel_audit", strategy)
     
-    # Special handling for biz_ratio which uses a custom sync mechanism
-    biz_ratio_val = params.get("business_ratio", 0.15) * 100
-    set_state("biz_ratio_slider", biz_ratio_val)
-    set_state("biz_ratio_input", biz_ratio_val)
+    set_state("priv_audit_slider", clamp(params.get("audit_rate_private", 0.01) * 100, 0.0, 10.0))
+    set_state("biz_audit_slider", clamp(params.get("audit_rate_business", 0.01) * 100, 0.0, 5.0))
+    
+    # biz_ratio uses custom sync mechanism
+    biz_ratio_val = clamp(params.get("business_ratio", 0.179) * 100, 0, 100)
     st.session_state.biz_ratio_value = biz_ratio_val
     
-    # --- Tier 2: Advanced ---
-    set_state("net_homo", params.get("homophily", 0.1))
-    set_state("net_deg", params.get("degree_mean", 10.0))
-    set_state("net_std", params.get("degree_std", 10.0))
-    
-    set_state("soc_inf", params.get("social_influence", 0.1))
-    set_state("soc_pso", params.get("pso_boost", 0.0))
-    set_state("soc_trust", params.get("trust_boost", 0.0))
-    
-    norm_update = params.get("norm_update", {})
-    soc_norm = norm_update.get("social_norm_scale", {})
-    stn_norm = norm_update.get("societal_norm_scale", {})
-    
-    set_state("sn_scale_priv", soc_norm.get("private", 0.1))
-    set_state("sn_scale_biz", soc_norm.get("business", 0.1))
-    set_state("stn_scale_priv", stn_norm.get("private", 0.05))
-    set_state("stn_scale_biz", stn_norm.get("business", 0.05))
-    
-    # --- Tier 3: Expert (Traits) ---
-    traits_p = params.get("traits_private", {})
-    set_state("sl_priv_pn", traits_p.get("personal_norms_mean", 3.0))
-    set_state("sl_priv_sn", traits_p.get("social_norms_mean", 3.0))
-    set_state("sl_priv_stn", traits_p.get("societal_norms_mean", 3.0))
-    set_state("sl_priv_pso", traits_p.get("pso_mean", 3.0))
-    set_state("sl_priv_pt", traits_p.get("trust_mean", 3.0))
-    set_state("sl_priv_inc", traits_p.get("income_mean", 50000))
-    set_state("sl_priv_audit_belief", traits_p.get("subjective_audit_prob_mean", 35.0))
-    
-    traits_b = params.get("traits_business", {})
-    set_state("sl_biz_pn", traits_b.get("personal_norms_mean", 3.0))
-    set_state("sl_biz_sn", traits_b.get("social_norms_mean", 3.0))
-    set_state("sl_biz_stn", traits_b.get("societal_norms_mean", 3.0))
-    set_state("sl_biz_pso", traits_b.get("pso_mean", 3.0))
-    set_state("sl_biz_pt", traits_b.get("trust_mean", 3.0))
-    set_state("sl_biz_audit_belief", traits_b.get("subjective_audit_prob_mean", 35.0))
-    
-    # --- SME Risk ---
-    sme = params.get("sme_risk", {})
-    set_state("sl_risk_base", sme.get("base", 0.1))
-    set_state("sl_d_sector", sme.get("delta_sector", 0.1))
-    set_state("sl_d_cash", sme.get("delta_cash", 0.05))
-    set_state("sl_d_digi", sme.get("delta_digi_high", -0.05))
-    set_state("sl_d_adv", abs(sme.get("delta_advisor", 0.05))) # Config stores as negative, slider uses abs
-    set_state("sl_d_audit", abs(sme.get("delta_audit", 0.05)))
+    # Network/Social
+    set_state("net_homo", clamp(params.get("homophily", 0.80), 0.0, 1.0))
+    set_state("net_deg", clamp(params.get("degree_mean", 86.27), 5.0, 300.0))
+    set_state("soc_inf_slider", clamp(params.get("social_influence", 0.5), 0.0, 1.0))

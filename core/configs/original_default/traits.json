@@ -8,18 +8,18 @@
                 "max": 5
             },
             "subjective_audit_prob": {
-                "mean": 60.75,
-                "std": 22.0,
+                "mean": 10.0,
+                "std": 5.0,
                 "min": 0,
                 "max": 100
             },
-            "perceived_service_orientation": {
+            "pso": {
                 "mean": 3.22,
                 "std": 0.68,
                 "min": 1,
                 "max": 5
             },
-            "perceived_trustworthiness": {
+            "p_trust": {
                 "mean": 3.37,
                 "std": 0.69,
                 "min": 1,
@@ -52,18 +52,18 @@
                 "max": 5
             },
             "subjective_audit_prob": {
-                "mean": 63.50,
-                "std": 23.0,
+                "mean": 22,
+                "std": 15,
                 "min": 0,
                 "max": 100
             },
-            "perceived_service_orientation": {
+            "pso": {
                 "mean": 3.18,
                 "std": 0.67,
                 "min": 1,
                 "max": 5
             },
-            "perceived_trustworthiness": {
+            "p_trust": {
                 "mean": 3.37,
                 "std": 0.69,
                 "min": 1,
@@ -105,6 +105,10 @@
                 "PT": 0.14,
                 "PSO": 0.11
             }
+        },
+        "tci_weight": {
+            "honest": 1.0,
+            "dishonest": 0.3
         }
     }
 }

@@ -5,6 +5,9 @@ from .base import (
     InterventionManager,
 )
 from .audit import AuditIntervention
+from .letter import DeterrenceLetterIntervention
+from .call import PhoneCallIntervention
+from .information import InformationCampaignIntervention
 
 __all__ = [
     "INTERVENTION_REGISTRY",
@@ -12,4 +15,7 @@ __all__ = [
     "InterventionStrategy",
     "InterventionManager",
     "AuditIntervention",
+    "DeterrenceLetterIntervention",
+    "PhoneCallIntervention",
+    "InformationCampaignIntervention",
 ]

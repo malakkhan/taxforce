@@ -113,8 +113,8 @@ def build_config_overrides(params: dict) -> dict:
                 key = k.replace("_mean", "")  # e.g. pso_mean -> pso
                 # Map shorthand to full config keys
                 key_map = {
-                    "pso": "perceived_service_orientation",
-                    "trust": "perceived_trustworthiness",
+                    "pso": "pso",
+                    "trust": "p_trust",
                     "personal_norms": "personal_norms",
                     "social_norms": "social_norms",
                     "societal_norms": "societal_norms",

@@ -1,6 +1,6 @@
 {
     "simulation": {
-        "n_agents": 5000,
+        "n_agents": 1000,
         "n_steps": 50,
         "business_ratio": 0.179
     },
@@ -14,37 +14,37 @@
             "private": {
                 "mean": 3.87,
                 "std": 0.64,
-                "threshold": 3.3
+                "threshold": 3.0
             },
             "business": {
                 "mean": 4.07,
                 "std": 0.60,
-                "threshold": 3.6
+                "threshold": 3.0
             }
         }
     },
     "error_model": {
         "enabled": true,
         "private": {
-            "base": 0.005
+            "base": 0.03
         },
         "business": {
-            "base": 0.35,
+            "base": 0.12,
             "digi_low_bonus": 0.10,
             "digi_high_reduction": 0.05,
             "cash_bonus": 0.05,
-            "advisor_reduction": 0.05,
+            "advisor_reduction": 0.10,
             "micro_bonus": 0.03,
             "high_risk_bonus": 0.03
         },
-        "pso_reduction_factor": 0.15,
-        "trust_reduction_factor": 0.10,
-        "norms_reduction_factor": 0.05,
+        "pso_reduction_factor": 0.30,
+        "trust_reduction_factor": 0.15,
+        "norms_reduction_factor": 0.10,
         "min_probability": 0.005,
         "max_probability": 0.35,
         "magnitude": {
-            "min": 0.12,
-            "max": 0.23
+            "min": 0.01,
+            "max": 0.08
         },
         "under_report_prob": 0.90
     }

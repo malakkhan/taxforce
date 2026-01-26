@@ -10,8 +10,8 @@ from core.simcache import sim_cache
 class AgentTraits:
     personal_norms: float
     subjective_audit_prob: float
-    perceived_service_orientation: float
-    perceived_trustworthiness: float
+    pso: float
+    p_trust: float
     social_norms: float
     societal_norms: float
     risk_aversion: float
@@ -44,6 +44,11 @@ class BaseAgent(mesa.Agent):
         self.neighbor_ids = []
         self.interventions = {}
         self.prev_evasion_rate = 0.0
+        self.error_amount = 0.0
+        self.temporary_audit_boost = 0.0 
+        self.initial_audit_prob = self.traits.subjective_audit_prob 
+        self.initial_pso = self.traits.pso 
+        self.base_risk_score = 0.0
     
     @abstractmethod
     def calculate_opportunity(self):
@@ -74,4 +79,8 @@ class BaseAgent(mesa.Agent):
         return max(0.0, min(1.0, rate))
     
     def step(self):
+        self.temporary_audit_boost = 0.0  
         self.declared_income = self.behavior.decide(self)
+    
+    def update_audit_history(self, audit_type):
+        pass

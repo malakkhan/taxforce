@@ -7,7 +7,8 @@ from .strategies import get_audit_strategy
 from .config import SimulationConfig
 from .simcache import clear_all_caches
 from .interventions import InterventionManager
-from . import updaters
+from . import beliefs
+
 
 
 class TaxComplianceModel(mesa.Model):
@@ -25,11 +26,12 @@ class TaxComplianceModel(mesa.Model):
         self.social_influence = config.social["social_influence"]
 
         self.audit_strategy = get_audit_strategy(config.enforcement["audit_strategy"])
-        self.belief_strategy = updaters.create_belief_strategy(config)
+        self.belief_strategy = beliefs.create_belief_strategy(config)
 
         self.create_agents()
         self.apply_boosts()
         self.network = build_network(list(self.agents), self.config)
+        self.initialize_evasion_rates()
 
         self.current_step = 0
         self.intervened_this_step: dict = {}
@@ -50,6 +52,8 @@ class TaxComplianceModel(mesa.Model):
                 "Avg_PSO": lambda m: m.calc_avg_pso(),
                 "MGTR": lambda m: m.calc_mgtr(),
                 "Penalties": lambda m: m.penalties_this_step,
+                "MKB_Total_Gap": lambda m: m.calc_mkb_total_gap(),
+                "MKB_Error_Gap": lambda m: m.calc_mkb_error_gap(),
             }
         )
 
@@ -67,8 +71,19 @@ class TaxComplianceModel(mesa.Model):
 
         for agent in self.agents:
             t = agent.traits
-            t.perceived_service_orientation = np.clip(t.perceived_service_orientation + pso_boost, 1, 5)
-            t.perceived_trustworthiness = np.clip(t.perceived_trustworthiness + trust_boost, 1, 5)
+            t.pso = np.clip(t.pso + pso_boost, 1, 5)
+            t.p_trust = np.clip(t.p_trust + trust_boost, 1, 5)
+
+    def initialize_evasion_rates(self):
+        for agent in self.agents:
+            declared = agent.behavior.decide(agent, initial_step=True)
+            evasion = agent.true_income - declared
+            
+            opportunity = agent.calculate_opportunity() * agent.true_income
+            if opportunity > 0:
+                agent.prev_evasion_rate = np.clip(evasion / opportunity, 0.0, 1.0)
+            else:
+                agent.prev_evasion_rate = 0.0
 
     def step(self):
         self.current_step += 1
@@ -97,9 +112,6 @@ class TaxComplianceModel(mesa.Model):
             for data in results.values() 
             for o in data["outcomes"]
         )
-        
-        for agent in agents_list:
-            self.belief_strategy.update(agent)
 
     def update_norms(self):
         agents_list = list(self.agents)
@@ -109,34 +121,25 @@ class TaxComplianceModel(mesa.Model):
         for agent in agents_list:
             if agent.neighbors:
                 mask = np.random.random(len(agent.neighbors)) < 0.5
-                interaction_sets[agent.unique_id] = [n for n, m in zip(agent.neighbors, mask) if m]
+                interating_neighbors = [n for n, m in zip(agent.neighbors, mask) if m]
+                interaction_sets[agent.unique_id] = interating_neighbors
             else:
                 interaction_sets[agent.unique_id] = []
 
-        omega = self.social_influence
-        for agent in agents_list:
-            interacting = interaction_sets[agent.unique_id]
-            if interacting:
-                neighbor_probs = [n.traits.subjective_audit_prob for n in interacting]
-                median_prob = np.median(neighbor_probs)
-                p = agent.traits.subjective_audit_prob
-                agent.traits.subjective_audit_prob = np.clip((1 - omega) * p + omega * median_prob, 0.0, 100.0)
-
-        compliance_scores = {a.unique_id: updaters.compute_compliance_score(a) for a in agents_list}
-        
-        agent_raw_scores = {}
-        for agent in agents_list:
-            interacting = interaction_sets[agent.unique_id]
-            if interacting:
-                raw = sum(compliance_scores[n.unique_id] for n in interacting) / len(interacting)
-                agent_raw_scores[agent.unique_id] = raw
-        
+        compliance_scores = {a.unique_id: beliefs.compute_compliance_score(a) for a in agents_list}
         societal_raw = sum(compliance_scores.values())
-
-        for agent in agents_list:
-            raw_score = agent_raw_scores.get(agent.unique_id)
-            updaters.update_social_norms(agent, raw_score)
-            updaters.update_societal_norms(agent, societal_raw, n_agents)
+        
+        audited_agents = self.intervened_this_step.get("audit", set())
+        
+        context = beliefs.UpdateContext(
+            interaction_sets=interaction_sets,
+            compliance_scores=compliance_scores,
+            societal_compliance=societal_raw,
+            audited_agents=audited_agents,
+            n_agents=n_agents
+        )
+        
+        self.belief_strategy.update_all(agents_list, context)
 
     def calc_tax_gap(self):
         return sum(a.evaded_income * self.tax_rate for a in self.agents)
@@ -165,12 +168,11 @@ class TaxComplianceModel(mesa.Model):
             t = agent.traits
             norm = lambda val: (val - 1) / 4
             
-            # Weighted combination (weights from Gangl coefficients)
             morale = (
                 0.18 * norm(t.social_norms) +   
                 0.23 * norm(t.societal_norms) +  
-                0.27 * norm(t.perceived_service_orientation) + 
-                0.32 * norm(t.perceived_trustworthiness)     
+                0.27 * norm(t.pso) + 
+                0.32 * norm(t.p_trust)
             )
             total += morale
         
@@ -188,13 +190,23 @@ class TaxComplianceModel(mesa.Model):
     def calc_avg_pso(self):
         agents = list(self.agents)
         if not agents: return 0.0
-        return sum(a.traits.perceived_service_orientation for a in agents) / len(agents)
+        return sum(a.traits.pso for a in agents) / len(agents)
 
     def calc_mgtr(self):
         total_true = sum(a.true_income for a in self.agents)
         if total_true <= 0: return 0.0
         revenue = sum(a.declared_income * self.tax_rate for a in self.agents)
         return (revenue + self.penalties_this_step) / total_true
+
+    def calc_mkb_total_gap(self):
+        sme_agents = [a for a in self.agents if a.occupation == 'business']
+        if not sme_agents: return 0.0
+        return sum(a.evaded_income * self.tax_rate for a in sme_agents)
+
+    def calc_mkb_error_gap(self):
+        sme_agents = [a for a in self.agents if a.occupation == 'business']
+        if not sme_agents: return 0.0
+        return sum(a.error_amount * self.tax_rate for a in sme_agents)
 
     def run(self, steps: int = None):
         n = steps or self.n_steps

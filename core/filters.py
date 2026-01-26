@@ -1,12 +1,15 @@
 import numpy as np
 from statistics import median
 
+
 def clip(value, low, high):
     return max(low, min(high, value))
+
 
 def opportunity_filter(agent):
     phi = agent.calculate_opportunity()
     return agent.true_income * phi
+
 
 def normative_filter(agent, max_concealable: float):
     occupation = agent.occupation
@@ -14,26 +17,38 @@ def normative_filter(agent, max_concealable: float):
     traits = agent.traits
 
     norm = lambda val: (val - 1) / 4
-    tax_compliance_intention = (
-        beta["PN"] * norm(traits.personal_norms) +
-        beta["SN"] * norm(traits.social_norms) +
-        beta["StN"] * norm(traits.societal_norms) +
-        beta["PT"] * norm(traits.perceived_trustworthiness) +
-        beta["PSO"] * norm(traits.perceived_service_orientation)
-    )
+    
+    contribs = {
+        "PN": beta["PN"] * norm(traits.personal_norms),
+        "SN": beta["SN"] * norm(traits.social_norms),
+        "StN": beta["StN"] * norm(traits.societal_norms),
+        "PT": beta["PT"] * norm(traits.p_trust),
+        "PSO": beta["PSO"] * norm(traits.pso)
+    }
+    
+    beta_sum = sum(beta.values())
+    raw_tci = sum(contribs.values())
+    tax_compliance_intention = raw_tci / beta_sum if beta_sum > 0 else raw_tci
+    tax_compliance_intention = max(0.0, min(1.0, tax_compliance_intention))
+    
+    tci_weight = agent.model.config.filters["tci_weight"][agent.behavior_type]
+    
+    return max_concealable * (1 - tci_weight * tax_compliance_intention)
 
-    willingness_to_hide = max_concealable * (1 - tax_compliance_intention)
-    return willingness_to_hide
 
 def social_influence_filter(agent, willingness: float, max_concealable: float):
-    if max_concealable <= 0: return 0.0
+    if max_concealable <= 0: 
+        return 0.0
     
     own_rate = willingness / max_concealable
     
-    if not agent.neighbors: return willingness
+    if not agent.neighbors: 
+        return willingness
     
-    neighbor_rates = [n.get_evasion_rate() for n in agent.neighbors if n.true_income > 0]
-    if not neighbor_rates: return willingness
+    neighbor_rates = [n.prev_evasion_rate for n in agent.neighbors if n.true_income > 0]
+    
+    if not neighbor_rates: 
+        return willingness
     
     omega = agent.model.social_influence
     median_rate = median(neighbor_rates)
@@ -43,27 +58,34 @@ def social_influence_filter(agent, willingness: float, max_concealable: float):
     
     return adjusted_rate * max_concealable
 
+
 def rational_choice_filter(agent, willingness: float) -> float:
     if willingness <= 0.0: return 0.0
 
-    p = agent.traits.subjective_audit_prob / 100.0
+    p_permanent = agent.traits.subjective_audit_prob
+    p_temporary = agent.temporary_audit_boost
+    p_raw = p_permanent + p_temporary
+    p = p_raw / 100.0
     f = agent.model.penalty_rate
     rho = agent.traits.risk_aversion
+    threshold = 1.0 / (1.0 + f)
 
-    if p >= 1.0: return 0.0
-    if p <= 0.0: return willingness
+    if p >= threshold: evasion_rate = 0.0
+    elif p <= 0.0: evasion_rate = 1.0
+    else:
+        margin = (threshold - p) / threshold
+        
+        if margin < 0.2:
+            rho_normalized = (rho - 0.5) / 4.5
+            deterrence_chance = (0.2 - margin) * rho_normalized
+            if deterrence_chance > 0.3:
+                evasion_rate = 0.0
+            else:
+                evasion_rate = 1.0
+        else:
+            evasion_rate = 1.0
 
-    threshold = 1.0 / (1.0 + f)  # ASY threshold
-    if p >= threshold: return 0.0
-
-    margin = (threshold - p) / threshold
-    rho_normalized = (rho - 0.5) / 4.5
-    risk_dampening = 1.0 - (0.8 * rho_normalized)
-
-    evasion_rate = margin * risk_dampening
-    evasion_rate = clip(evasion_rate, 0.0, 1.0)
     return evasion_rate * willingness
-
 
 
 

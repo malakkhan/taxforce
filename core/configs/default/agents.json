@@ -3,7 +3,8 @@
         "income": {
             "mean": 41000,
             "std": 5000
-        }
+        },
+        "opportunity": 0.10
     },
     "sme": {
         "size_class_probs": [
@@ -12,13 +13,16 @@
             0.04
         ],
         "sector_probs": {
-            "Hospitality": 0.07,
-            "Retail": 0.16,
+            "Professional": 0.28,
+            "Trade": 0.14,
             "Construction": 0.11,
-            "Transport": 0.06,
-            "ICT": 0.07,
-            "Professional": 0.18,
-            "PersonalServices": 0.05
+            "Retail": 0.10,
+            "Healthcare": 0.10,
+            "Transport": 0.08,
+            "Hospitality": 0.06,
+            "ICT": 0.05,
+            "PersonalServices": 0.05,
+            "Cleaning": 0.03
         },
         "turnover_ranges": {
             "Micro": [
@@ -59,7 +63,10 @@
                 "high_risk_branches": [
                     "Kebabzaak",
                     "Snackbar",
-                    "Grillroom"
+                    "Grillroom",
+                    "Café-bar",
+                    "Lunchroom",
+                    "IJssalon"
                 ]
             },
             "Retail": {
@@ -150,7 +157,7 @@
                 "high_risk_branches": []
             },
             "PersonalServices": {
-                "risk": "normal",
+                "risk": "high",
                 "cash_prob": 0.5,
                 "digital_weights": [
                     0.5,
@@ -167,7 +174,64 @@
                 "high_risk_branches": [
                     "Nagelstudio",
                     "Kapsalon",
-                    "Barbershop"
+                    "Barbershop",
+                    "Schoonheidssalon"
+                ]
+            },
+            "Healthcare": {
+                "risk": "normal",
+                "cash_prob": 0.15,
+                "digital_weights": [
+                    0.2,
+                    0.5,
+                    0.3
+                ],
+                "branches": [
+                    "ZZP-verpleging",
+                    "Fysiotherapie",
+                    "Huisarts",
+                    "Tandarts",
+                    "Thuiszorg"
+                ],
+                "high_risk_branches": []
+            },
+            "Trade": {
+                "risk": "high",
+                "cash_prob": 0.40,
+                "digital_weights": [
+                    0.3,
+                    0.5,
+                    0.2
+                ],
+                "branches": [
+                    "Autohandel",
+                    "Groothandel",
+                    "Juwelier",
+                    "Pandjeshuis",
+                    "Tweedehandszaak"
+                ],
+                "high_risk_branches": [
+                    "Autohandel",
+                    "Juwelier",
+                    "Pandjeshuis"
+                ]
+            },
+            "Cleaning": {
+                "risk": "high",
+                "cash_prob": 0.50,
+                "digital_weights": [
+                    0.6,
+                    0.3,
+                    0.1
+                ],
+                "branches": [
+                    "Schoonmaakbedrijf",
+                    "Glazenwasser",
+                    "Huishoudelijke-hulp"
+                ],
+                "high_risk_branches": [
+                    "Huishoudelijke-hulp",
+                    "Schoonmaakbedrijf"
                 ]
             }
         },
@@ -183,10 +247,13 @@
             0.07
         ],
         "opportunity": {
-            "base": 0.30,
+            "base": 0.35,
             "cash_bonus": 0.25,
             "low_digi_bonus": 0.10,
             "high_digi_penalty": 0.15,
+            "micro_bonus": 0.0,
+            "medium_penalty": 0.0,
+            "high_risk_sector_bonus": 0.0,
             "min": 0.10,
             "max": 0.80
         },

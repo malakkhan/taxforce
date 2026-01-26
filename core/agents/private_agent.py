@@ -5,6 +5,7 @@ class PrivateAgent(BaseAgent):
     def __init__(self, model):
         super().__init__(model, occupation="private")
         self.true_income = self.sample_income()
+        self.declared_income = self.true_income  # Start as compliant (no prior evasion)
 
     def sample_income(self):
         income_cfg = self.model.config.private["income"]
@@ -18,7 +19,7 @@ class PrivateAgent(BaseAgent):
         return float(np.random.lognormal(mu_log, sigma_log))
 
     def calculate_opportunity(self):
-        return 0.10
+        return self.model.config.private["opportunity"]
 
     @property
     def group_key(self):
