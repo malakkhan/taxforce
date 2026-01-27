@@ -79,8 +79,8 @@ def build_config_overrides(params: dict) -> dict:
     # Phone Satisfaction (apply to both sectors)
     phone_sat = params.get("phone_sat")
     if phone_sat is not None:
-        # Convert 0-100 to probability
-        prob = phone_sat / 100.0
+        # Value is already a probability (0-1) from simulate.py
+        prob = phone_sat
         pso_overrides.setdefault("private", {})["phone_satisfied_prob"] = prob
         pso_overrides.setdefault("business", {})["phone_satisfied_prob"] = prob
         
@@ -108,21 +108,36 @@ def build_config_overrides(params: dict) -> dict:
     # Helper to clean trait dicts
     def clean_traits(t_dict):
         cleaned = {}
-        for k, v in t_dict.items():
+        # Identify all base keys (removing _mean/_std suffixes)
+        base_keys = set()
+        for k in t_dict.keys():
             if k.endswith("_mean"):
-                key = k.replace("_mean", "")  # e.g. pso_mean -> pso
-                # Map shorthand to full config keys
-                key_map = {
-                    "pso": "pso",
-                    "trust": "p_trust",
-                    "personal_norms": "personal_norms",
-                    "social_norms": "social_norms",
-                    "societal_norms": "societal_norms",
-                    "subjective_audit_prob": "subjective_audit_prob",
-                    "risk_aversion": "risk_aversion"
-                }
-                actual_key = key_map.get(key, key)
-                cleaned[actual_key] = {"mean": v}
+                base_keys.add(k[:-5])
+            elif k.endswith("_std"):
+                base_keys.add(k[:-4])
+        
+        # known mappings
+        key_map = {
+            "pso": "pso",
+            "trust": "p_trust",
+            "personal_norms": "personal_norms",
+            "social_norms": "social_norms",
+            "societal_norms": "societal_norms",
+            "subjective_audit_prob": "subjective_audit_prob",
+            "risk_aversion": "risk_aversion"
+        }
+        
+        for key in base_keys:
+            actual_key = key_map.get(key, key)
+            entry = {}
+            if f"{key}_mean" in t_dict:
+                entry["mean"] = t_dict[f"{key}_mean"]
+            if f"{key}_std" in t_dict:
+                entry["std"] = t_dict[f"{key}_std"]
+            
+            if entry:
+                cleaned[actual_key] = entry
+                
         return cleaned
 
     # Traits - Private
@@ -179,6 +194,50 @@ def build_config_overrides(params: dict) -> dict:
         
         if sme_overrides:
             overrides["sme"] = sme_overrides
+            
+    # SME Opportunity (New)
+    sme_opp = params.get("sme_opportunity", {})
+    if sme_opp:
+        # simulate.py structure matches config structure for top-level keys
+        # except it uses 'min'/'max' which are correct.
+        # Just assign it directly under sme.opportunity
+        overrides.setdefault("sme", {})["opportunity"] = sme_opp
+
+    # Error Model (New)
+    error_model = params.get("error_model", {})
+    if error_model:
+        em_overrides = {}
+        if "enabled" in error_model: 
+            em_overrides["enabled"] = error_model["enabled"]
+        if "under_report_prob" in error_model: 
+            em_overrides["under_report_prob"] = error_model["under_report_prob"]
+        
+        # Map flat rates to nested structure
+        if "rate_private" in error_model: 
+            em_overrides.setdefault("private", {})["base"] = error_model["rate_private"]
+        if "rate_business" in error_model: 
+            em_overrides.setdefault("business", {})["base"] = error_model["rate_business"]
+        
+        # Map magnitude
+        if "magnitude_min" in error_model or "magnitude_max" in error_model:
+            mag = {}
+            if "magnitude_min" in error_model: mag["min"] = error_model["magnitude_min"]
+            if "magnitude_max" in error_model: mag["max"] = error_model["magnitude_max"]
+            em_overrides["magnitude"] = mag
+            
+        overrides["error_model"] = em_overrides
+
+    # Belief Update Globals (New)
+    belief_overrides = {}
+    if params.get("belief_mu") is not None: belief_overrides["mu"] = params.get("belief_mu")
+    if params.get("belief_signal") is not None: belief_overrides["audit_signal_strength"] = params.get("belief_signal")
+    if params.get("belief_perception") is not None: belief_overrides["perception_weight"] = params.get("belief_perception")
+    if params.get("belief_drift") is not None: belief_overrides["audit_prob_drift_rate"] = params.get("belief_drift")
+    if params.get("belief_delta") is not None: belief_overrides["audit_prob_response_delta"] = params.get("belief_delta")
+    if params.get("belief_target") is not None: belief_overrides["audit_target_prob"] = params.get("belief_target")
+    
+    if belief_overrides:
+        overrides["belief_update"] = belief_overrides
     
     # Clean up None values from overrides
     def remove_none(d):

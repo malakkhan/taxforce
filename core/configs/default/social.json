@@ -32,7 +32,9 @@
         "mu": 0.85,
         "audit_signal_strength": 0.30,
         "perception_weight": 0.05,
-        "audit_prob_drift_rate": 0.10
+        "audit_prob_drift_rate": 0.20,
+        "audit_target_prob": 0.75,
+        "audit_prob_response_delta": 25.0
     },
     "norm_update": {
         "social_norm_scale": {

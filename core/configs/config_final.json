@@ -140,17 +140,6 @@
                     "subjective_audit_prob_permanent": 3.0
                 }
             }
-        },
-        "information": {
-            "enabled": false,
-            "rate": {
-                "private": 0.03,
-                "business": 0.05
-            },
-            "effects": {
-                "personal_norm_delta": 0.15,
-                "pso_delta": 0.15
-            }
         }
     }
 }

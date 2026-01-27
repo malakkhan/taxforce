@@ -37,14 +37,14 @@
             "micro_bonus": 0.03,
             "high_risk_bonus": 0.03
         },
-        "pso_reduction_factor": 0.15,
-        "trust_reduction_factor": 0.10,
+        "pso_reduction_factor": 0.50,
+        "trust_reduction_factor": 0.35,
         "norms_reduction_factor": 0.05,
         "min_probability": 0.005,
         "max_probability": 0.35,
         "magnitude": {
-            "min": 0.12,
-            "max": 0.23
+            "min": 0.15,
+            "max": 0.40
         },
         "under_report_prob": 0.90
     }

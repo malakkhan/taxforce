@@ -443,31 +443,37 @@ def render():
         
         with chart_row4_col2:
             with st.container(border=True):
-                st.markdown("**Compliance vs Declaration**", help="Direct comparison of the Compliance Rate (binary) vs the Declaration Ratio (continuous) to show if agents are partially evading or fully compliant.")
+                st.markdown("**Error vs Evasion Gap (SME)**", help="Decomposition of the Tax Gap for SMEs: Unintentional Errors vs Intentional Evasion.")
                 
-                # Restore variables needed for this specific chart
-                compliance_data = results.get("compliance_over_time", [0.0] * 50)
-                declaration_data = results.get("declaration_ratio_over_time", [1.0] * 50)
+                # Retrieve MKB gap data
+                total_gap = results.get("mkb_gap_over_time", [0.0] * 50)
+                error_gap = results.get("mkb_error_over_time", [0.0] * 50)
+                
+                # Evasion Gap = Total - Error (ensure non-negative)
+                evasion_gap = [max(0, t - e) for t, e in zip(total_gap, error_gap)]
                 
                 fig = go.Figure()
-                x_vals = list(range(1, len(compliance_data) + 1))
+                x_vals = list(range(1, len(total_gap) + 1))
                 
                 fig.add_trace(go.Scatter(
-                    x=x_vals, y=compliance_data,
-                    mode='lines', name='Compliance Rate',
-                    line=dict(color='#059669', width=2),
-                    hovertemplate="%{y:.1%}<extra></extra>",
+                    x=x_vals, y=error_gap,
+                    mode='lines', name='Error Gap (Unintentional)',
+                    line=dict(color='#F59E0B', width=2), # Amber
+                    hovertemplate="Error Gap: €%{y:,.0f}<extra></extra>",
                 ))
                 fig.add_trace(go.Scatter(
-                    x=x_vals, y=declaration_data,
-                    mode='lines', name='Declaration Ratio',
-                    line=dict(color='#7C3AED', width=2),
-                    hovertemplate="%{y:.1%}<extra></extra>",
+                    x=x_vals, y=evasion_gap,
+                    mode='lines', name='Evasion Gap (Intentional)',
+                    line=dict(color='#EF4444', width=2), # Red
+                    hovertemplate="Evasion Gap: €%{y:,.0f}<extra></extra>",
                 ))
+                
+                # Optional: Total Gap reference? 
+                # Let's keep it simple as requested: "contains the error gap an evasion gap"
                 
                 fig.update_layout(
                     xaxis=dict(title="Time Period", tickfont=dict(size=11), showgrid=True, gridcolor="#E8EEF2"),
-                    yaxis=dict(tickfont=dict(size=11), showgrid=True, gridcolor="#E8EEF2", tickformat=".0%"),
+                    yaxis=dict(tickfont=dict(size=11), showgrid=True, gridcolor="#E8EEF2", tickprefix="€", range=[0, None]), # Force 0 start
                     plot_bgcolor="white", paper_bgcolor="white",
                     margin=dict(l=40, r=20, t=20, b=40),
                     height=280, hovermode="x unified",

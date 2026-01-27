@@ -247,7 +247,7 @@
             0.07
         ],
         "opportunity": {
-            "base": 0.35,
+            "base": 0.30,
             "cash_bonus": 0.25,
             "low_digi_bonus": 0.10,
             "high_digi_penalty": 0.15,
