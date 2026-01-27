@@ -249,14 +249,17 @@ def _get_default_values():
 DEFAULT_VALUES = _get_default_values()
 
 def reset_to_defaults():
-    """Reset all session state values to their defaults and force visual sync."""
+    """Reset all session state values to their defaults and trigger local slider resets."""
+    # 1. Reset standard session state keys from DEFAULT_VALUES
     for key, value in DEFAULT_VALUES.items():
         st.session_state[key] = value
     
-    # Increment all version keys to force sliders to visually sync their handles
+    # 2. Trigger local reset for all UI sliders that have been initialized
+    # This ensures they pick up their 'default' argument and refresh handle via version increment.
     sync_keys = [k for k in st.session_state.keys() if k.endswith("_sync_v")]
     for k in sync_keys:
-        st.session_state[k] += 1
+        master_key = k.rsplit("_sync_v", 1)[0]
+        st.session_state[f"{master_key}_do_reset"] = True
 
 
 def synced_slider_input(
@@ -1466,11 +1469,19 @@ def _apply_config_to_state(config_data: dict):
     def clamp(val, min_val, max_val):
         return max(min_val, min(max_val, val))
     
-    # Helper to safely set state with type handling
+    # Helper to safely set state with type handling and slider sync
     def set_state(key, value):
         st.session_state[key] = value
-        # Note: We don't set *_input keys here because the synced_slider_input
-        # number inputs read from the main slider key's session state directly
+        
+        # Sync the corresponding input box if it exists
+        input_key = f"{key}_input"
+        if input_key in st.session_state:
+            st.session_state[input_key] = value
+            
+        # Increment sync version to force slider refresh
+        sync_key = f"{key}_sync_v"
+        if sync_key in st.session_state:
+            st.session_state[sync_key] += 1
     
     # =====================================================
     # SIMULATION SETUP
@@ -1735,8 +1746,19 @@ def load_params_into_state(params: dict):
     def clamp(val, min_val, max_val):
         return max(min_val, min(max_val, val))
 
+    # Helper to safely set state with type handling and slider sync
     def set_state(key, value):
         st.session_state[key] = value
+        
+        # Sync the corresponding input box if it exists
+        input_key = f"{key}_input"
+        if input_key in st.session_state:
+            st.session_state[input_key] = value
+            
+        # Increment sync version to force slider refresh
+        sync_key = f"{key}_sync_v"
+        if sync_key in st.session_state:
+            st.session_state[sync_key] += 1
 
     # Simulation
     set_state("pop_slider", clamp(params.get("n_agents", 1000), 500, 2500))
