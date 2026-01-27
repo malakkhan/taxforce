@@ -1575,8 +1575,12 @@ def _apply_config_to_state(config_data: dict):
     set_state("phone_sat_slider", clamp(phone_sat, 50.0, 99.0))
     
     # Web quality
-    web_qual = priv_pso.get("webcare_mean", 3.2)
-    set_state("web_qual_slider", clamp(web_qual, 1.0, 5.0))
+    web_qual_priv = priv_pso.get("webcare_mean", 3.2)
+    set_state("web_qual_priv_slider", clamp(web_qual_priv, 1.0, 5.0))
+    
+    biz_pso = pso_update.get("business", {})
+    web_qual_biz = biz_pso.get("webcare_mean", 3.5)
+    set_state("web_qual_biz_slider", clamp(web_qual_biz, 1.0, 5.0))
     
     # Transparency (HUBA)
     set_state("huba_delta", pso_update.get("huba_delta", 1.0))

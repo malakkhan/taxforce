@@ -84,7 +84,16 @@ def build_config_overrides(params: dict) -> dict:
         pso_overrides.setdefault("private", {})["phone_satisfied_prob"] = prob
         pso_overrides.setdefault("business", {})["phone_satisfied_prob"] = prob
         
-    # Webcare Quality (apply to both sectors)
+    # Webcare Quality
+    web_qual_priv = params.get("web_qual_private")
+    if web_qual_priv is not None:
+        pso_overrides.setdefault("private", {})["webcare_mean"] = web_qual_priv
+        
+    web_qual_biz = params.get("web_qual_business")
+    if web_qual_biz is not None:
+        pso_overrides.setdefault("business", {})["webcare_mean"] = web_qual_biz
+        
+    # Legacy fallbacks
     web_qual = params.get("web_qual")
     if web_qual is not None:
         pso_overrides.setdefault("private", {})["webcare_mean"] = web_qual
