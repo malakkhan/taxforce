@@ -80,10 +80,14 @@ class CustomStrategy(BeliefStrategy):
         audit = agent.interventions.get("audit")
         
         if audit:
-            if np.random.random() < 0.5:
-                traits.subjective_audit_prob = 100.0
+            delta = config.get("audit_prob_response_delta", 10.0)
+            target_prob = config.get("audit_target_prob", 0.5)
+            
+            # If random < target_prob, we increase belief (Target effect)
+            if np.random.random() < target_prob:
+                traits.subjective_audit_prob += delta
             else:
-                traits.subjective_audit_prob = 0.0
+                traits.subjective_audit_prob -= delta
         else:
             drift_rate = config["audit_prob_drift_rate"]
             if drift_rate > 0:

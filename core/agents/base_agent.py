@@ -79,8 +79,8 @@ class BaseAgent(mesa.Agent):
         return max(0.0, min(1.0, rate))
     
     def step(self):
-        self.temporary_audit_boost = 0.0  
         self.declared_income = self.behavior.decide(self)
+        self.temporary_audit_boost = 0.0
     
     def update_audit_history(self, audit_type):
         pass

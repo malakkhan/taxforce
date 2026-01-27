@@ -26,11 +26,14 @@ def create_chart(data, color="#01689B", y_format="auto", auto_range=False):
     """Create a clean, modern line chart.
     
     Args:
+        data: List of values OR Dict of {label: list_of_values}
         auto_range: If True, zoom Y-axis to data range with 10% padding
     """
     fig = go.Figure()
     
-    x_vals = list(range(1, len(data) + 1))
+    # Handle dict data length checking
+    first_series = next(iter(data.values())) if isinstance(data, dict) else data
+    x_vals = list(range(1, len(first_series) + 1))
     
     # Convert color to rgb for transparency
     r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
@@ -44,15 +47,23 @@ def create_chart(data, color="#01689B", y_format="auto", auto_range=False):
         hover_template = "%{y:,.0f}<extra></extra>"
     
     # Calculate Y-axis range with padding if auto_range
+    # Calculate Y-axis range with padding if auto_range
     y_range = None
     tick_format = None
     if auto_range and data:
-        data_min = min(data)
-        data_max = max(data)
+        if isinstance(data, dict):
+             # aggregate min/max from all series
+             all_vals = [v for series in data.values() for v in series]
+             data_min = min(all_vals) if all_vals else 0
+             data_max = max(all_vals) if all_vals else 1
+        else:
+             data_min = min(data)
+             data_max = max(data)
+             
         data_range = data_max - data_min
         padding = data_range * 0.15  # 15% padding
         if padding == 0:
-            padding = data_max * 0.1  # If flat line, use 10% of value
+            padding = max(abs(data_max), 1) * 0.1  # If flat line, use 10% of value
         y_range = [data_min - padding, data_max + padding]
         
         # Dynamically adjust precision for percentage format based on data range
@@ -68,17 +79,43 @@ def create_chart(data, color="#01689B", y_format="auto", auto_range=False):
     elif y_format == "percent":
         tick_format = ".0%"
     
-    # Area fill under line (disable for auto_range to avoid fill extending to 0)
-    fig.add_trace(go.Scatter(
-        x=x_vals,
-        y=data,
-        mode='lines',
-        line=dict(color=color, width=3),
-        fill='tozeroy' if not auto_range else None,
-        fillcolor=f"rgba({r}, {g}, {b}, 0.1)" if not auto_range else None,
-        hovertemplate=hover_template,
-        showlegend=False,
-    ))
+    # Support for multiple lines (dict of label: data) or single list
+    if isinstance(data, dict):
+        # Multiple lines
+        colors = [color, "#DC2626", "#059669", "#7C3AED", "#F59E0B"] # Default palette
+        for i, (label, series) in enumerate(data.items()):
+            c = colors[i % len(colors)]
+            
+            # Special handling for "Private" and "Business" to stick to theme colors if possible
+            if "Private" in label: c = "#3B82F6" # Blue
+            if "Business" in label: c = "#F59E0B" # Amber/Orange
+            if "Total" in label: c = "#10B981" # Gray/Green or Primary
+            
+            fig.add_trace(go.Scatter(
+                x=x_vals,
+                y=series,
+                mode='lines',
+                name=label,
+                line=dict(color=c, width=3 if "Total" in label else 2),
+                # fill='tozeroy' if not auto_range and i==0 else None, # Only fill first or none to avoid mess
+                hovertemplate=hover_template.replace("%{y", f"{label}: %{{y"),
+                showlegend=True,
+            ))
+            
+        fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+        
+    else:
+        # Single line (Original behavior)
+        fig.add_trace(go.Scatter(
+            x=x_vals,
+            y=data,
+            mode='lines',
+            line=dict(color=color, width=3),
+            fill='tozeroy' if not auto_range else None,
+            fillcolor=f"rgba({r}, {g}, {b}, 0.1)" if not auto_range else None,
+            hovertemplate=hover_template,
+            showlegend=False,
+        ))
     
     fig.update_layout(
         xaxis=dict(
@@ -295,15 +332,34 @@ def render():
         with chart_row1_col1:
             with st.container(border=True):
                 st.markdown("**Compliance Rate**", help="Percentage of agents who are fully compliant (100% declaration) at each step.")
-                compliance_data = results.get("compliance_over_time", [0.0] * 50)
-                fig = create_chart(compliance_data, "#059669", y_format="percent", auto_range=True)
+                
+                # Check for split data availability
+                comp_priv = results.get("compliance_priv")
+                comp_biz = results.get("compliance_biz")
+                comp_total = results.get("compliance_over_time", [0.0] * 50)
+                
+                if comp_priv and comp_biz:
+                    data = {"Total": comp_total, "Private": comp_priv, "Business": comp_biz}
+                else:
+                    data = comp_total
+                    
+                fig = create_chart(data, "#059669", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         with chart_row1_col2:
             with st.container(border=True):
                 st.markdown("**Tax Gap Trend**", help="Total uncollected tax revenue (evaded income × tax rate) at each step.")
-                gap_data = results.get("tax_gap_over_time", [100] * 50)
-                fig = create_chart(gap_data, "#DC2626")
+                
+                gap_priv = results.get("tax_gap_priv")
+                gap_biz = results.get("tax_gap_biz")
+                gap_total = results.get("tax_gap_over_time", [100] * 50)
+                
+                if gap_priv and gap_biz:
+                     data = {"Total": gap_total, "Private": gap_priv, "Business": gap_biz}
+                else:
+                     data = gap_total
+                     
+                fig = create_chart(data, "#DC2626")
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         chart_row2_col1, chart_row2_col2 = st.columns(2, gap="medium")
@@ -311,17 +367,38 @@ def render():
         with chart_row2_col1:
             with st.container(border=True):
                 st.markdown("**Average Declaration Ratio**", help="Average ratio of (Declared Income / True Income) across all agents at each step.")
-                declaration_data = results.get("declaration_ratio_over_time", [1.0] * 50)
-                fig = create_chart(declaration_data, "#7C3AED", y_format="percent", auto_range=True)
+                
+                dec_priv = results.get("declaratio_priv")
+                dec_biz = results.get("declaration_biz")
+                dec_total = results.get("declaration_ratio_over_time", [1.0] * 50)
+                
+                if dec_priv and dec_biz:
+                    data = {"Total": dec_total, "Private": dec_priv, "Business": dec_biz}
+                else:
+                    data = dec_total
+                    
+                fig = create_chart(data, "#7C3AED", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         with chart_row2_col2:
             with st.container(border=True):
                 st.markdown("**Tax Morale**", help="Average Tax Morale score (0-100%) across population, reflecting intrinsic willingness to comply.")
-                morale_data_raw = results.get("tax_morale_over_time", [50.0] * 50)
-                # Convert from 0-100 to 0-1 scale for percentage formatting
-                morale_data = [v / 100 for v in morale_data_raw]
-                fig = create_chart(morale_data, "#F59E0B", y_format="percent", auto_range=True)
+                
+                mor_priv = results.get("morale_priv")
+                mor_biz = results.get("morale_biz")
+                mor_total_raw = results.get("tax_morale_over_time", [50.0] * 50)
+                
+                # Convert logic for 0-1 scale
+                if mor_priv and mor_biz:
+                    data = {
+                        "Total": [v/100 for v in mor_total_raw],
+                        "Private": [v/100 for v in mor_priv],
+                        "Business": [v/100 for v in mor_biz]
+                    }
+                else:
+                    data = [v/100 for v in mor_total_raw]
+                
+                fig = create_chart(data, "#F59E0B", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         # Third row: FOUR and MGTR
@@ -330,13 +407,26 @@ def render():
         with chart_row3_col1:
             with st.container(border=True):
                 st.markdown("**Fraud Opportunity Use Rate (FOUR)**", help="Average evasion rate among non-honest agents who had an opportunity to evade.")
-                four_data = results.get("four_over_time", [0.5] * 50)
-                fig = create_chart(four_data, "#EF4444", y_format="percent", auto_range=True)
+                four_priv = results.get("four_priv")
+                four_biz = results.get("four_biz")
+                four_total = results.get("four_over_time", [0.5] * 50)
+                
+                if four_priv and four_biz:
+                    data = {"Total": four_total, "Private": four_priv, "Business": four_biz}
+                else:
+                    data = four_total
+                
+                fig = create_chart(data, "#EF4444", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
         with chart_row3_col2:
             with st.container(border=True):
                 st.markdown("**Mean Gross Tax Rate (MGTR)**", help="Effective tax rate: (Total Revenue + Penalties) / Total True Income.")
+                # MGTR splits might be less reliable due to penalty approximation, but we have lists.
+                # Actually we implemented (Revenue/TrueIncome) for split without penalties.
+                mgtr_priv = results.get("run_mgtr_priv") # Wait, keys in running.py were mgtr_priv/biz?
+                # looking at running.py: "mgtr_over_time": avg_mgtr, ... wait, I didn't add mgtr split keys in `running.py` results dict?
+                # I see `all_mgtr` processing but I need to check the results dict keys I added.
                 mgtr_data = results.get("mgtr_over_time", [0.3] * 50)
                 fig = create_chart(mgtr_data, "#3B82F6", y_format="percent", auto_range=True)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
@@ -354,6 +444,10 @@ def render():
         with chart_row4_col2:
             with st.container(border=True):
                 st.markdown("**Compliance vs Declaration**", help="Direct comparison of the Compliance Rate (binary) vs the Declaration Ratio (continuous) to show if agents are partially evading or fully compliant.")
+                
+                # Restore variables needed for this specific chart
+                compliance_data = results.get("compliance_over_time", [0.0] * 50)
+                declaration_data = results.get("declaration_ratio_over_time", [1.0] * 50)
                 
                 fig = go.Figure()
                 x_vals = list(range(1, len(compliance_data) + 1))

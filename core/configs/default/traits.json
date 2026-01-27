@@ -38,7 +38,7 @@
                 "max": 5
             },
             "risk_aversion": {
-                "mean": 2.0,
+                "mean": 0.5,
                 "std": 1.0,
                 "min": 0.5,
                 "max": 5.0
@@ -82,7 +82,7 @@
                 "max": 5
             },
             "risk_aversion": {
-                "mean": 2.0,
+                "mean": 0.5,
                 "std": 1.0,
                 "min": 0.5,
                 "max": 5.0

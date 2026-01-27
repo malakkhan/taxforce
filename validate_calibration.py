@@ -58,8 +58,8 @@ if __name__ == "__main__":
     print("Done!\n")
     
     steps = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-    print(f"{'Step':>4} | {'SME Gap':>12} | {'Biz H':>10} | {'Biz D':>10} | {'Prv H':>10} | {'Prv D':>10}")
-    print("-"*80)
+    print(f"{'Step':>4} | {'SME Gap':>12} | {'Err Share':>10} | {'Priv Gap':>10} | {'Priv Dis %':>10}")
+    print("-" * 80)
     
     data = {}
     for i, step in enumerate(steps):
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         pdc = [r[i]['priv_d_cmp'] for r in all_results]
         data[step] = {'g': np.mean(g), 'e': np.mean(e), 'pg': np.mean(pg), 'pd': np.mean(pd),
                       'ev': np.mean(ev), 'bhc': np.mean(bhc), 'bdc': np.mean(bdc), 'phc': np.mean(phc), 'pdc': np.mean(pdc)}
-        print(f"{step:4d} | {np.mean(g):5.2f}% ±{np.std(g):4.2f} | {np.mean(bhc):5.1f}%±{np.std(bhc):3.1f} | {np.mean(bdc):5.1f}%±{np.std(bdc):3.1f} | {np.mean(phc):5.1f}%±{np.std(phc):3.1f} | {np.mean(pdc):5.1f}%±{np.std(pdc):3.1f}")
+        print(f"{step:4d} | {np.mean(g):5.2f}% ±{np.std(g):4.2f} | {np.mean(e):5.1f}%±{np.std(e):3.1f} | {np.mean(pg):5.3f}%±{np.std(pg):.3f} | {np.mean(pd):5.1f}%±{np.std(pd):3.1f}")
     
     s1, s50 = data[1], data[50]
     print("\n" + "="*80)

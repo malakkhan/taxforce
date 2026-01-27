@@ -79,6 +79,8 @@
     transform: rotate(90deg) !important;
 }
 
+
+
 /* Zero out markdown padding for slider compact view */
 [data-testid="stHorizontalBlock"]:not(:has([data-testid="stHorizontalBlock"])):has(.slider-compact-marker) .stMarkdown p {
     margin: 0 !important;
@@ -105,18 +107,20 @@
     width: auto !important;
 }
 
-/* 1. Label Column */
+/* 1. Label Column - Flexible width to fill available space */
 [data-testid="stHorizontalBlock"]:not(:has([data-testid="stHorizontalBlock"])):has(.compact-marker)>div:nth-child(1) {
-    width: 210px !important;
-    min-width: 210px !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 60px !important;
     display: flex !important;
     align-items: center !important;
 }
 
-/* Prevent label wrapping */
+/* Allow label wrapping for responsiveness */
 [data-testid="stHorizontalBlock"]:not(:has([data-testid="stHorizontalBlock"])):has(.compact-marker) label,
 [data-testid="stHorizontalBlock"]:not(:has([data-testid="stHorizontalBlock"])):has(.compact-marker) .stMarkdown p {
-    white-space: nowrap !important;
+    white-space: normal !important;
+    line-height: 1.2 !important;
 }
 
 /* 2. Number Input Column - Tightly follow label */
@@ -154,4 +158,81 @@
 [data-testid="stHorizontalBlock"]:not(:has([data-testid="stHorizontalBlock"])):has(.compact-marker) button:hover {
     color: #01689B !important;
     transform: rotate(90deg) !important;
+}
+
+/* ===== WHITESPACE FIXES ===== */
+/* 1. HIDE MARKER to remove the 16px flex-gap it causes */
+.slider-compact-marker {
+    display: none !important;
+}
+
+/* 2. REMOVE PADDING on the specific container wrapper for these sliders */
+/* 2. REMOVE PADDING on the specific container wrapper for these sliders */
+[data-testid="stVerticalBlockBorderWrapper"]:has(.slider-compact-marker)>div {
+    padding: 12px 24px !important;
+    /* Reduce top/bottom padding from 24px to 12px */
+}
+
+/* 3. PULL SLIDER UP towards the title (Counteract the 16px flex-gap) */
+[data-testid="stHorizontalBlock"]:has(.slider-compact-marker) {
+    margin-top: -12px !important;
+}
+
+/* 4. REMOVE SLIDER PADDING for these specific compact sliders */
+[data-testid="stHorizontalBlock"]:has(.slider-compact-marker) .stSlider {
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+}
+
+/* 5. TIGHTEN ROWS of Compact Inputs */
+/* The "massive" whitespace is due to nested stVerticalBlocks having 1rem gap + 24px padding each */
+
+/* CSS Rule Reverted */
+
+/* 5. TIGHTEN ROWS - STRICT PRECISE TARGETING */
+/* Target ONLY the specific vertical block containing our compact text box wrapper */
+/* Target ONLY the specific container we created in simulate.py */
+/* We use nesting (> child) to ensure we don't accidentally target parent containers (like expanders or main page) */
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .compact-rows-wrapper) {
+    /* Relax gap from 0px to 50px (User Request) */
+    gap: 50px !important;
+    /* Explicitly remove any border/background artifacts */
+    border: 0px solid transparent !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    /* FIX MASSIVE GAP: Pull container up slightly */
+    padding-top: 0px !important;
+    margin-top: -32px !important;
+}
+
+/* Ensure the marker itself doesn't take space */
+.compact-rows-wrapper {
+    display: none !important;
+}
+
+/* Ensure no border wrapper shows up */
+[data-testid="stVerticalBlockBorderWrapper"]:has(.compact-rows-wrapper) {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Reduce padding of the INNER widget columns slightly */
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .compact-rows-wrapper) [data-testid="stVerticalBlock"] {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    gap: 0px !important;
+}
+
+/* FIX ALIGNMENT: Remove default paragraph margin from labels */
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .compact-rows-wrapper) .stMarkdown p {
+    margin-bottom: 0px !important;
+    line-height: 1.2 !important;
+}
+
+/* FIX ALIGNMENT: Remove negative margin from collapsed-label inputs AND push down using TOP */
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .compact-rows-wrapper) [data-testid="stNumberInput"] {
+    margin-bottom: 0px !important;
+    /* Use relative positioning to force the move: 2px down */
+    position: relative !important;
+    top: 2px !important;
 }

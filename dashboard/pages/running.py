@@ -212,7 +212,10 @@ def run_simulation(params: dict, progress_callback=None):
     all_four = []
     all_pso = []
     all_mgtr = []
+    all_mgtr = []
     all_penalties = []
+    all_mkb_gap = []
+    all_mkb_error = []
     
     total_iterations = n_runs * n_steps
     current_iteration = 0
@@ -231,6 +234,8 @@ def run_simulation(params: dict, progress_callback=None):
         run_pso = []
         run_mgtr = []
         run_penalties = []
+        run_mkb_gap = []
+        run_mkb_error = []
         
         for step in range(n_steps):
             model.step()
@@ -238,16 +243,43 @@ def run_simulation(params: dict, progress_callback=None):
             # Collect metrics after each step
             df = model.datacollector.get_model_vars_dataframe()
             if len(df) > 0:
-                run_compliance.append(df['Compliance_Rate'].iloc[-1])
-                run_tax_gap.append(df['Tax_Gap'].iloc[-1])
-                run_taxes.append(df['Total_Taxes'].iloc[-1])
-                run_audits.append(df['Audits'].iloc[-1])
-                run_declaration_ratio.append(df['Avg_Declaration_Ratio'].iloc[-1])
-                run_tax_morale.append(df['Tax_Morale'].iloc[-1])
-                run_four.append(df['Avg_FOUR'].iloc[-1])
+                # Helper to unpack tuple or keep single value
+                def unpack(val, default=(0.0, 0.0)):
+                    if isinstance(val, tuple) and len(val) == 2:
+                        return val
+                    return (val, val) # Fallback for backward compat or if model didn't return tuple
+
+                comp_p, comp_b = unpack(df['Compliance_Rate'].iloc[-1])
+                run_compliance.append((comp_p, comp_b))
+                
+                gap_p, gap_b = unpack(df['Tax_Gap'].iloc[-1])
+                run_tax_gap.append((gap_p, gap_b))
+                
+                # Total Taxes splits (Priv, Biz)
+                tax_p, tax_b = unpack(df['Total_Taxes'].iloc[-1])
+                run_taxes.append((tax_p, tax_b))
+                
+                # Audits splits
+                aud_p, aud_b = unpack(df['Audits'].iloc[-1])
+                run_audits.append((aud_p, aud_b))
+                
+                dec_p, dec_b = unpack(df['Avg_Declaration_Ratio'].iloc[-1])
+                run_declaration_ratio.append((dec_p, dec_b))
+                
+                mor_p, mor_b = unpack(df['Tax_Morale'].iloc[-1])
+                run_tax_morale.append((mor_p, mor_b))
+                
+                four_p, four_b = unpack(df['Avg_FOUR'].iloc[-1])
+                run_four.append((four_p, four_b))
+                
                 run_pso.append(df['Avg_PSO'].iloc[-1])
                 run_mgtr.append(df['MGTR'].iloc[-1])
-                run_penalties.append(df['Penalties'].iloc[-1])
+                
+                pen_p, pen_b = unpack(df['Penalties'].iloc[-1])
+                run_penalties.append((pen_p, pen_b))
+                
+                run_mkb_gap.append(df['MKB_Total_Gap'].iloc[-1])
+                run_mkb_error.append(df['MKB_Error_Gap'].iloc[-1])
             
             # Update progress
             current_iteration += 1
@@ -265,22 +297,97 @@ def run_simulation(params: dict, progress_callback=None):
         all_pso.append(run_pso)
         all_mgtr.append(run_mgtr)
         all_penalties.append(run_penalties)
+        all_mkb_gap.append(run_mkb_gap)
+        all_mkb_error.append(run_mkb_error)
     
     # Average across runs
+    # Average across runs
     import numpy as np
-    avg_compliance = np.mean(all_compliance, axis=0).tolist()
-    avg_tax_gap = np.mean(all_tax_gap, axis=0).tolist()
-    avg_taxes = np.mean(all_taxes, axis=0).tolist()
-    avg_declaration_ratio = np.mean(all_declaration_ratio, axis=0).tolist()
-    avg_tax_morale = np.mean(all_tax_morale, axis=0).tolist()
-    avg_four = np.mean(all_four, axis=0).tolist()
+    
+    # helper for averaging tuples (n_runs, n_steps, 2)
+    def avg_tuples(all_data):
+        # Shape: (n_runs, n_steps, 2)
+        arr = np.array(all_data)
+        # Average over runs (axis 0) -> (n_steps, 2)
+        avg_arr = np.mean(arr, axis=0)
+        # Split into two lists: priv, biz
+        priv = avg_arr[:, 0].tolist()
+        biz = avg_arr[:, 1].tolist()
+        return priv, biz
+
+    # Calculate splits
+    comp_priv, comp_biz = avg_tuples(all_compliance)
+    gap_priv, gap_biz = avg_tuples(all_tax_gap)
+    taxes_priv, taxes_biz = avg_tuples(all_taxes)
+    dec_priv, dec_biz = avg_tuples(all_declaration_ratio)
+    mor_priv, mor_biz = avg_tuples(all_tax_morale)
+    four_priv, four_biz = avg_tuples(all_four)
+    four_priv, four_biz = avg_tuples(all_four)
+    # pso_priv, pso_biz = avg_tuples(all_pso) # Removed: PSO is now 1D aggregate
+    
+    # Calculate weighted / summed totals for backward compatibility
+    # Compliance: weighted by agent count (simplified: assume 50/50? NO, use population ratio)
+    # BETTER: Just derive it from the lists if we had population counts per step?
+    # Actually, model.py already returned accurate per-group averages.
+    # To get total average, we need weights. 
+    # BUT, we also have the original Total logic which was: sum(compliant)/total.
+    # Since we replaced the reporter, we lost the direct "Total" output unless we returned a triplet.
+    # User said: "reading the whole list and setting both equal to each other" -> implies keeping simplicity.
+    # Let's reconstruct totals using `params`?
+    # n_agents = params.get("n_agents", 1000)
+    # biz_ratio = params.get("business_ratio", 0.0) # wait, might be None
+    
+    # Use config overrides to find ratio?
+    # Simpler: The "Private" and "Business" lists ARE the data now.
+    # To get "Total Compliance" for the chart, we can weight them:
+    # C_total = (C_p * N_p + C_b * N_b) / N
+    
+    # Let's retrieve ratio from params to do this aggregation correctly
+    b_ratio = params.get("business_ratio", 0.15) # Default 0.15 if missing
+    p_ratio = 1.0 - b_ratio
+    
+    def weighted_avg(list_p, list_b):
+        return [(p * p_ratio + b * b_ratio) for p, b in zip(list_p, list_b)]
+        
+    avg_compliance = weighted_avg(comp_priv, comp_biz)
+    avg_declaration_ratio = weighted_avg(dec_priv, dec_biz)
+    avg_tax_morale = weighted_avg(mor_priv, mor_biz)
+    avg_four = weighted_avg(four_priv, four_biz)
+    # PSO & MGTR reverted to aggregate
     avg_pso = np.mean(all_pso, axis=0).tolist()
+    
+    # MGTR: (Tax + Pen) / True Income.
     avg_mgtr = np.mean(all_mgtr, axis=0).tolist()
-    total_audits = int(np.mean([sum(run) for run in all_audits]))
-    total_penalties = float(np.mean([sum(run) for run in all_penalties]))
+    
+    
+    # MKB Gaps (Single value per step, no split)
+    # Using simple mean across runs
+    avg_mkb_gap = np.mean(all_mkb_gap, axis=0).tolist()
+    avg_mkb_error = np.mean(all_mkb_error, axis=0).tolist()
+    
+    # For sums (Gap, Taxes), Total = Priv + Biz
+    def sum_lists(list_p, list_b):
+        return [(p + b) for p, b in zip(list_p, list_b)]
+        
+    avg_tax_gap = sum_lists(gap_priv, gap_biz)
+    avg_taxes = sum_lists(taxes_priv, taxes_biz)
+    
+    # MGTR: (Tax + Pen) / True Income.
+    # Reverted to simple aggregate mean
+    avg_mgtr = np.mean(all_mgtr, axis=0).tolist()
+    
+    # Audits: Sum
+    aud_priv, aud_biz = avg_tuples(all_audits)
+    # Total audits per step is sum of priv+biz, then sum over steps
+    total_audits = int(sum(sum_lists(aud_priv, aud_biz)))
+    
+    # Penalties: Sum
+    pen_priv, pen_biz = avg_tuples(all_penalties)
+    total_penalties = float(sum(sum_lists(pen_priv, pen_biz)))
     
     # Build results dict
     results = {
+        # Original (Aggregated)
         "compliance_over_time": avg_compliance,
         "tax_gap_over_time": avg_tax_gap,
         "taxes_over_time": avg_taxes,
@@ -289,9 +396,20 @@ def run_simulation(params: dict, progress_callback=None):
         "four_over_time": avg_four,
         "pso_over_time": avg_pso,
         "mgtr_over_time": avg_mgtr,
-        "total_taxes": int(np.mean([sum(t) for t in all_taxes])),
-        "total_tax_gap": int(np.mean([sum(tg) for tg in all_tax_gap])),  # Cumulative gap
-        "final_tax_gap": float(np.mean([tg[-1] for tg in all_tax_gap])),  # Final year only
+        
+        # New (Splits)
+        "compliance_priv": comp_priv, "compliance_biz": comp_biz,
+        "tax_gap_priv": gap_priv, "tax_gap_biz": gap_biz,
+        "declaratio_priv": dec_priv, "declaration_biz": dec_biz,
+        "morale_priv": mor_priv, "morale_biz": mor_biz,
+        "four_priv": four_priv, "four_biz": four_biz,
+        # "pso_priv": pso_priv, "pso_biz": pso_biz, # Removed per feedback
+        # "mgtr_priv": mgtr_priv, "mgtr_biz": mgtr_biz, # Removed per feedback
+        
+        # Aggregates
+        "total_taxes": int(np.mean([sum(sum(r) for r in run) for run in all_taxes])), # Sum of (p+b) over steps, mean over runs
+        "total_tax_gap": int(np.mean([sum(sum(r) for r in run) for run in all_tax_gap])),
+        "final_tax_gap": float(avg_tax_gap[-1]), 
         "final_compliance": float(avg_compliance[-1]) if avg_compliance else 0.0,
         "initial_compliance": float(avg_compliance[0]) if avg_compliance else 0.0,
         "max_compliance": float(max(avg_compliance)) if avg_compliance else 0.0,
@@ -303,6 +421,8 @@ def run_simulation(params: dict, progress_callback=None):
         "final_mgtr": float(avg_mgtr[-1]) if avg_mgtr else 0.0,
         "total_penalties": total_penalties,
         "total_audits": total_audits,
+        "mkb_gap_over_time": avg_mkb_gap,
+        "mkb_error_over_time": avg_mkb_error,
     }
     
     return results

@@ -5,8 +5,22 @@
     "social": {
         "social_influence": 0.10
     },
+    "traits": {
+        "business": {
+            "subjective_audit_prob": {
+                "mean": 37.5
+            }
+        },
+        "private": {
+            "subjective_audit_prob": {
+                "mean": 42.5
+            }
+        }
+    },
     "belief_update": {
-        "audit_prob_drift_rate": 0.10
+        "audit_prob_drift_rate": 0.2,
+        "audit_target_prob": 0.75,
+        "audit_prob_response_delta": 25.0
     },
     "pso_update": {
         "pso_drift_rate": 0.25,
@@ -59,16 +73,16 @@
             "advisor_reduction": 0.05
         },
         "magnitude": {
-            "min": 0.12,
-            "max": 0.23
+            "min": 0.15,
+            "max": 0.40
         },
-        "pso_reduction_factor": 0.15,
-        "trust_reduction_factor": 0.10,
+        "pso_reduction_factor": 0.50,
+        "trust_reduction_factor": 0.35,
         "norms_reduction_factor": 0.05
     },
     "sme": {
         "opportunity": {
-            "base": 0.35
+            "base": 0.30
         }
     },
     "private": {
@@ -99,8 +113,8 @@
                 "business": 0.03
             },
             "effects": {
-                "subjective_audit_prob_permanent": 1.0,
-                "subjective_audit_prob_temporary": 12.0,
+                "subjective_audit_prob_permanent": 3.0,
+                "subjective_audit_prob_temporary": 15.0,
                 "trust_delta": -0.1
             }
         },
@@ -116,12 +130,14 @@
                 "satisfied": {
                     "pso_delta": 0.3,
                     "trust_delta": 0.2,
-                    "subjective_audit_prob_temporary": 8.0,
-                    "subjective_audit_prob_permanent": 1.0
+                    "subjective_audit_prob_temporary": 10.0,
+                    "subjective_audit_prob_permanent": 3.0
                 },
                 "dissatisfied": {
                     "pso_delta": -0.2,
-                    "trust_delta": -0.1
+                    "trust_delta": -0.1,
+                    "subjective_audit_prob_temporary": 10.0,
+                    "subjective_audit_prob_permanent": 3.0
                 }
             }
         },

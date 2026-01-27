@@ -1,5 +1,6 @@
 import numpy as np
 import networkx as nx
+from numba import njit
 from collections import defaultdict
 
 from .agents import BaseAgent
@@ -24,7 +25,7 @@ class NetworkBuilder:
 
     # --- Topology builders ---
 
-    def build_lognormal(self, agents):
+    def build_lognormal_python(self, agents):
         graph = nx.Graph()
         for agent in agents:
             graph.add_node(agent.unique_id, agent=agent)
@@ -56,6 +57,71 @@ class NetworkBuilder:
             agent.neighbor_ids = [n.unique_id for n in agent.neighbors]
 
         return graph
+
+    def build_lognormal(self, agents):
+        n = len(agents)
+        reverse_map = {i: a.unique_id for i, a in enumerate(agents)}
+        unique_groups = list({a.group_key for a in agents})
+        group_to_int = {g: i for i, g in enumerate(unique_groups)}
+        
+        group_ids = np.array([group_to_int[a.group_key] for a in agents], dtype=np.int32)
+        target_degrees = np.array([self.sample_degree() for _ in agents], dtype=np.int32)
+
+        raw_edges = self.compute_edges_numba(n, group_ids, target_degrees, self.net["homophily"])
+        
+        graph = nx.Graph()
+        graph.add_nodes_from((a.unique_id, {'agent': a}) for a in agents)
+        graph.add_edges_from([(reverse_map[u], reverse_map[v]) for u, v in raw_edges])
+
+        for agent in agents:
+            neighbors = list(graph[agent.unique_id]) 
+            agent.neighbor_ids = neighbors
+            agent.neighbors = [graph.nodes[n_id]['agent'] for n_id in neighbors]
+
+        return graph
+
+    @staticmethod
+    @njit(cache=True)
+    def compute_edges_numba(n_agents, group_ids, target_degrees, homophily):
+        edges = []
+        current_deg = np.zeros(n_agents, dtype=np.int32)
+        adj = np.zeros((n_agents, n_agents), dtype=np.bool_) 
+
+        for i in range(n_agents):
+            needed = target_degrees[i] - current_deg[i]
+            if needed <= 0:
+                continue
+                
+            n_same = int(needed * homophily)
+            same_cands = []
+            other_cands = []
+            
+            for j in range(n_agents):
+                if i == j or adj[i, j]: 
+                    continue
+                if group_ids[j] == group_ids[i]:
+                    same_cands.append(j)
+                else:
+                    other_cands.append(j)
+                    
+            for candidates, count in [(same_cands, n_same), (other_cands, needed - n_same)]:
+                if count <= 0 or not candidates:
+                    continue
+                    
+                cand_arr = np.array(candidates)
+                n_cands = len(cand_arr)
+                count = min(count, n_cands)
+                
+                for k in range(count):
+                    idx = np.random.randint(k, n_cands)
+                    cand_arr[k], cand_arr[idx] = cand_arr[idx], cand_arr[k]
+                    target = cand_arr[k]
+                    edges.append((i, target))
+                    adj[i, target] = True
+                    adj[target, i] = True
+                    current_deg[i] += 1
+                    current_deg[target] += 1
+        return edges
 
     def build_erdos(self, agents):
         raise NotImplementedError

@@ -1,5 +1,9 @@
 import streamlit as st
 from pathlib import Path
+import warnings
+
+# Suppress warnings about widgets having value set via session state
+warnings.filterwarnings("ignore", message='The widget with key ".*" was created with a default value but also had its value set via the Session State API.')
 
 # Page configuration - must be first
 st.set_page_config(
