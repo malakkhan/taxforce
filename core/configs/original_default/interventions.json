@@ -1,0 +1,81 @@
+{
+    "interventions": {
+        "audit": {
+            "enabled": true,
+            "rate": {
+                "private": 0.01,
+                "business": 0.01
+            },
+            "selection_strategy": "random",
+            "audit_type_probs": {
+                "admin": 0.72,
+                "books": 0.28
+            }
+        },
+        "letter_reminder": {
+            "enabled": false,
+            "rate": {
+                "private": 0.05,
+                "business": 0.10
+            },
+            "effects": {
+                "subjective_audit_prob_delta": 5.0,
+                "pso_delta": 0.1
+            }
+        },
+        "letter_deterrence": {
+            "enabled": false,
+            "rate": {
+                "private": 0.02,
+                "business": 0.05
+            },
+            "selection_strategy": "risk_based",
+            "effects": {
+                "subjective_audit_prob_delta": 15.0,
+                "trust_delta": -0.2
+            }
+        },
+        "letter_social_norm": {
+            "enabled": false,
+            "rate": {
+                "private": 0.05,
+                "business": 0.08
+            },
+            "effects": {
+                "social_norm_delta": 0.3,
+                "societal_norm_delta": 0.2
+            }
+        },
+        "call": {
+            "enabled": false,
+            "rate": {
+                "private": 0.01,
+                "business": 0.03
+            },
+            "selection_strategy": "risk_based",
+            "satisfied_prob": 0.80,
+            "effects": {
+                "satisfied": {
+                    "pso_delta": 0.5,
+                    "trust_delta": 0.3,
+                    "subjective_audit_prob_delta": 10.0
+                },
+                "dissatisfied": {
+                    "pso_delta": -0.3,
+                    "trust_delta": -0.2
+                }
+            }
+        },
+        "information": {
+            "enabled": false,
+            "rate": {
+                "private": 0.03,
+                "business": 0.05
+            },
+            "effects": {
+                "personal_norm_delta": 0.2,
+                "pso_delta": 0.2
+            }
+        }
+    }
+}

@@ -1,0 +1,745 @@
+/* TaxForce Dashboard - Professional Design System */
+
+:root {
+    --primary: #01689B;
+    --primary-dark: #01689B;
+    --primary-light: #90C9E6;
+    --background: #E8F3F8;
+    --surface: #FFFFFF;
+    --text-dark: #1A1A1A;
+    --text-medium: #4A5568;
+    --text-light: #718096;
+    --border: #D1D9E0;
+    --success: #059669;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* ===== GLOBAL RESETS ===== */
+.stApp {
+    background-color: var(--background) !important;
+}
+
+/* Hide hamburger menu and dev tools completely */
+#MainMenu {
+    visibility: hidden !important;
+}
+
+footer {
+    visibility: hidden !important;
+}
+
+header {
+    visibility: hidden !important;
+}
+
+[data-testid="stSidebar"] {
+    display: none !important;
+}
+
+[data-testid="stSidebarNav"] {
+    display: none !important;
+}
+
+.stDeployButton {
+    display: none !important;
+}
+
+[data-testid="stToolbar"] {
+    display: none !important;
+}
+
+/* Main container - REMOVE ALL PADDING for edge-to-edge header */
+.main .block-container {
+    padding: 0 !important;
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+}
+
+/* Also target the data-testid version */
+[data-testid="stAppViewBlockContainer"] {
+    padding: 0 !important;
+    padding-top: 0 !important;
+    max-width: 100% !important;
+}
+
+/* Remove any margins on main app container */
+.stApp>div>div>div>div {
+    padding: 0 !important;
+}
+
+section[data-testid="stMain"] {
+    padding: 0 !important;
+}
+
+section[data-testid="stMain"]>div {
+    padding: 0 !important;
+}
+
+/* ===== BACK BUTTON ===== */
+/* Style the back button at top of non-home pages */
+.st-key-back_home .stButton>button {
+    background: white !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-medium) !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+}
+
+.st-key-back_home .stButton>button:hover {
+    background: var(--surface) !important;
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+}
+
+/* Default content padding - layout handled by st.columns in Python */
+.main .block-container {
+    padding: 24px 32px !important;
+}
+
+[data-testid="stAppViewBlockContainer"] {
+    padding: 24px 32px !important;
+}
+
+/* ===== NATIVE CONTAINER CARDS ===== */
+[data-testid="stVerticalBlock"]>[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: white !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow) !important;
+    overflow: auto;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"]>div {
+    padding: 24px !important;
+}
+
+/* ===== KPI CARDS ===== */
+.kpi-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 8px 0;
+}
+
+.kpi-label {
+    font-size: 13px;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-change {
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.kpi-change.positive {
+    color: var(--success);
+}
+
+.kpi-change.negative {
+    color: var(--danger);
+}
+
+/* ===== BUTTONS ===== */
+.stButton>button {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    border-radius: 10px !important;
+    padding: 8px 16px !important;
+    white-space: nowrap !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+}
+
+.stButton>button[kind="primary"],
+.stButton>button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(1, 104, 155, 0.3) !important;
+}
+
+.stButton>button[kind="primary"]:hover,
+.stButton>button[data-testid="baseButton-primary"]:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(1, 104, 155, 0.4) !important;
+}
+
+.stButton>button[kind="secondary"],
+.stButton>button[data-testid="baseButton-secondary"] {
+    background: white !important;
+    color: var(--text-dark) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.stButton>button[kind="secondary"]:hover,
+.stButton>button[data-testid="baseButton-secondary"]:hover {
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+    background: #f0f7fa !important;
+}
+
+/* ===== MODERN SLIDERS ===== */
+.stSlider {
+    padding: 8px 0 !important;
+}
+
+.stSlider [data-testid="stThumbValue"] {
+    background: var(--primary) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    padding: 4px 10px !important;
+    border-radius: 20px !important;
+    top: -36px !important;
+}
+
+.stSlider [data-testid="stTickBarMin"],
+.stSlider [data-testid="stTickBarMax"] {
+    color: var(--text-light) !important;
+    font-size: 12px !important;
+}
+
+/* ===== SLIDER STYLING - FIGMA STYLE ===== */
+/* Thick rounded slider matching Figma prototype */
+
+/* Reduce vertical spacing around sliders */
+[data-baseweb="slider"] {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: -8px !important;
+    margin-bottom: -15px !important;
+}
+
+/* Reduce spacing around slider container elements */
+[data-testid="stSlider"] {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+[data-testid="stSlider"]>div {
+    margin-bottom: 0 !important;
+}
+
+/* Track container - the div that holds the gradient */
+[data-baseweb="slider"]>div>div {
+    height: 20px !important;
+    border-radius: 10px !important;
+}
+
+/* Slider thumb - chunky circle with white center */
+[data-baseweb="slider"] div[role="slider"] {
+    width: 20px !important;
+    height: 20px !important;
+    background: white !important;
+    border: 3px solid var(--primary) !important;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Thumb hover effect */
+[data-baseweb="slider"] div[role="slider"]:hover {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Style the tooltip value above thumb */
+[data-testid="stSliderThumbValue"] {
+    color: var(--primary) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+
+/* Number input alignment with slider */
+[data-testid="stNumberInput"] {
+    display: flex !important;
+    align-items: flex-end !important;
+    padding-bottom: 14px !important;
+}
+
+/* ===== MODERN NUMBER INPUT STYLING ===== */
+/* Clean, minimal number input with subtle border and teal accent */
+[data-testid="stNumberInput"] input {
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 10px !important;
+    padding: 8px 14px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    text-align: center !important;
+    background: #FAFBFC !important;
+    transition: all 0.2s ease !important;
+    min-width: 65px !important;
+}
+
+[data-testid="stNumberInput"] input:hover {
+    border-color: #CBD5E1 !important;
+    background: white !important;
+}
+
+[data-testid="stNumberInput"] input:focus {
+    border-color: #0A7EA4 !important;
+    box-shadow: 0 0 0 3px rgba(10, 126, 164, 0.15), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+    outline: none !important;
+}
+
+/* Hide the +/- buttons for cleaner look */
+[data-testid="stNumberInput"] button {
+    display: none !important;
+}
+
+/* Compact standalone number inputs (without sliders) */
+[data-testid="stHorizontalBlock"] [data-testid="stNumberInput"] {
+    padding-bottom: 0 !important;
+    margin-bottom: -20px !important;
+}
+
+/* ===== SELECT BOX ===== */
+.stSelectbox>div>div {
+    background: white !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    padding: 4px 8px !important;
+}
+
+.stSelectbox>div>div:hover {
+    border-color: var(--primary) !important;
+}
+
+/* ===== EXPANDER ===== */
+div[data-testid="stExpander"] {
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: white !important;
+    overflow: hidden !important;
+    margin-bottom: 12px !important;
+}
+
+.streamlit-expanderHeader {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--text-dark) !important;
+    padding: 16px 20px !important;
+    background: #f8fafc !important;
+}
+
+.streamlit-expanderHeader:hover {
+    background: #f0f4f7 !important;
+}
+
+div[data-testid="stExpander"]>div:last-child {
+    padding: 20px !important;
+}
+
+/* ===== RADIO BUTTONS ===== */
+.stRadio>div {
+    gap: 8px !important;
+}
+
+.stRadio label {
+    background: white !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+    transition: all 0.15s !important;
+}
+
+.stRadio label:hover {
+    border-color: var(--primary) !important;
+    background: #f0f7fa !important;
+}
+
+.stRadio label[data-checked="true"],
+.stRadio div[data-checked="true"]+label {
+    background: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}
+
+/* ===== PROGRESS BAR ===== */
+.stProgress>div>div>div {
+    background: linear-gradient(90deg, var(--primary), var(--primary-light)) !important;
+    border-radius: 8px !important;
+}
+
+.stProgress>div>div {
+    background: var(--border) !important;
+    border-radius: 8px !important;
+    height: 12px !important;
+}
+
+/* ===== METRICS ===== */
+[data-testid="stMetricValue"] {
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    color: var(--primary) !important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 12px !important;
+    color: var(--text-light) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-testid="stMetricDelta"] {
+    font-size: 13px !important;
+}
+
+/* ===== SECTION STYLING ===== */
+.section-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+.section-desc {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 20px;
+}
+
+/* ===== CHART CONTAINERS ===== */
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+
+.chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 16px;
+}
+
+/* ===== HOME PAGE CARDS ===== */
+.home-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px 32px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.home-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.home-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px auto;
+}
+
+.home-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+.home-desc {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 24px;
+}
+
+/* ===== DIVIDER ===== */
+hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+}
+
+/* ===== RESET BUTTON ICON ===== */
+/* Minimal icon button for resetting slider values to defaults */
+
+/* Target the button container column to reduce gap */
+[data-testid="stHorizontalBlock"]>div:last-child:has(button[id*="_reset"]) {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Target the button wrapper divs */
+.stButton:has(button[id*="_reset"]) {
+    margin-top: 8px !important;
+}
+
+/* Use very specific selectors to override the default button styles */
+/* Target emotion-cache classes that Streamlit generates */
+button[id*="_reset"][class*="st-emotion-cache"],
+.stButton>button[id*="_reset"],
+.stButton>button[id*="_reset"]:hover,
+.stButton>button[id*="_reset"]:focus,
+.stButton>button[id*="_reset"]:active,
+[data-testid="stButton"]>button[id*="_reset"],
+[data-testid="stButton"]>button[id*="_reset"]:hover,
+[data-testid="stButton"]>button[id*="_reset"]:focus,
+[data-testid="stButton"]>button[id*="_reset"]:active,
+button[id*="_reset"],
+button[id*="_reset"]:hover,
+button[id*="_reset"]:focus,
+button[id*="_reset"]:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    border-width: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: #A0AEC0 !important;
+    font-size: 18px !important;
+    padding: 4px !important;
+    min-height: unset !important;
+    height: auto !important;
+    width: auto !important;
+    min-width: unset !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    transition: color 0.15s ease, transform 0.15s ease !important;
+    border-radius: 0 !important;
+}
+
+button[id*="_reset"][class*="st-emotion-cache"]:hover,
+.stButton>button[id*="_reset"]:hover,
+[data-testid="stButton"]>button[id*="_reset"]:hover,
+button[id*="_reset"]:hover {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #01689B !important;
+    transform: rotate(-45deg) !important;
+    border: none !important;
+}
+
+/* Slider-specific reset button styling is in simulate.css */
+/* Custom padding for the Algorithm Guide button to make it "bigger" */
+.st-key-btn_download_algo_guide>button {
+    padding: 12px 32px !important;
+    font-size: 16px !important;
+}
+
+/* Creative Blue Gradient for Algorithm Guide */
+.st-key-btn_download_algo_guide>button {
+    background: linear-gradient(135deg, #0072ff 0%, #00c6ff 100%) !important;
+    border: none !important;
+    color: white !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 6px rgba(0, 114, 255, 0.2) !important;
+}
+
+.st-key-btn_download_algo_guide>button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 7px 14px rgba(0, 114, 255, 0.3) !important;
+}
+
+/* Custom Tooltips to fix layout shifting */
+.kpi-card {
+    position: relative !important;
+}
+
+/* Question mark icon */
+.tooltip-icon {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 18px;
+    height: 18px;
+    background: transparent;
+    border-radius: 50%;
+    color: #718096;
+    /* Darker gray for icon */
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    transition: all 0.2s;
+    z-index: 10;
+    border: 2px solid #CBD5E0;
+    /* Thicker gray border */
+}
+
+.tooltip-icon:hover {
+    color: #01689B;
+    border-color: #01689B;
+    background: #f0f7fa;
+}
+
+/* Tooltip Popup Bubble */
+.tooltip-icon:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    transform: translateY(-8px);
+    background-color: #e8f3f8;
+    /* User requested color */
+    color: #2D3748;
+    /* Dark text */
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: normal;
+    width: max-content;
+    max-width: 200px;
+    text-align: left;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    line-height: 1.4;
+    pointer-events: none;
+    border: 1px solid #e8f3f8;
+    /* User requested border color */
+}
+
+/* Little arrow pointer */
+.tooltip-icon:hover::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 6px;
+    margin-bottom: -14px;
+    /* Adjust to overlap border */
+    border-width: 6px;
+    border-style: solid;
+    border-color: #e8f3f8 transparent transparent transparent;
+    z-index: 101;
+    /* Above shadow */
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.05));
+}
+
+/* ===== CONFIG LOADER STYLING ===== */
+/* Extremely specific targeting for the config loader on simulate page */
+
+/* 1. Reset the dropzone container to be invisible/seamless */
+.st-key-config_uploader [data-testid="stFileUploaderDropzone"] {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: unset !important;
+}
+
+/* 2. Hide the instructions ("Drag and drop file here", "Limit 200MB") */
+.st-key-config_uploader [data-testid="stFileUploaderDropzoneInstructions"] {
+    display: none !important;
+}
+
+.st-key-config_uploader [data-testid="stFileUploaderDropzone"] small {
+    display: none !important;
+}
+
+.st-key-config_uploader [data-testid="stFileUploaderDropzone"] span {
+    display: none !important;
+}
+
+/* 3. Style the "Browse files" button to look like a Secondary Action Button (White) */
+.st-key-config_uploader button {
+    width: 100% !important;
+    background: white !important;
+    border: 1px solid var(--border) !important;
+    color: transparent !important;
+    /* Hide "Browse files" text */
+    border-radius: 10px !important;
+    padding: 8px 16px !important;
+    font-size: 0 !important;
+    /* Hide "Browse files" text */
+    font-weight: 500 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.2s ease !important;
+    /* Ensure text is centered and visible */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+}
+
+/* Inject "Load Config" text */
+.st-key-config_uploader button::after {
+    content: "Load Config" !important;
+    font-size: 16px !important;
+    color: var(--text-dark) !important;
+    visibility: visible !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    white-space: nowrap !important;
+    font-weight: 500 !important;
+}
+
+/* Hover state */
+.st-key-config_uploader button:hover {
+    background: #f0f7fa !important;
+    border-color: var(--primary) !important;
+    /* color: var(--primary) !important;  <- Don't set color here, it affects the transparent text */
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.st-key-config_uploader button:hover::after {
+    color: var(--primary) !important;
+}
+
+/* Active/Focus state */
+.st-key-config_uploader button:active,
+.st-key-config_uploader button:focus {
+    background: #e1eef5 !important;
+    border-color: var(--primary) !important;
+    color: transparent !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(1, 104, 155, 0.2) !important;
+}
+
+.st-key-config_uploader button:active::after,
+.st-key-config_uploader button:focus::after {
+    color: var(--primary) !important;
+}
+
+/* 4. Hide the uploaded file list entirely (User requested just text instead) */
+.st-key-config_uploader [data-testid="stFileUploaderFile"] {
+    display: none !important;
+}

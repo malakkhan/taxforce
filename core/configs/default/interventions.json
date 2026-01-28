@@ -1,0 +1,52 @@
+{
+    "interventions": {
+        "audit": {
+            "enabled": true,
+            "rate": {
+                "private": 0.01,
+                "business": 0.01
+            },
+            "selection_strategy": "random",
+            "audit_type_probs": {
+                "admin": 0.72,
+                "books": 0.28
+            }
+        },
+        "letter_deterrence": {
+            "enabled": true,
+            "rate": {
+                "private": 0.02,
+                "business": 0.03
+            },
+            "selection_strategy": "risk_based",
+            "effects": {
+                "subjective_audit_prob_permanent": 3.0,
+                "subjective_audit_prob_temporary": 15.0,
+                "trust_delta": -0.1
+            }
+        },
+        "call": {
+            "enabled": true,
+            "rate": {
+                "private": 0.01,
+                "business": 0.03
+            },
+            "selection_strategy": "risk_based",
+            "satisfied_prob": 0.8,
+            "effects": {
+                "satisfied": {
+                    "pso_delta": 0.3,
+                    "trust_delta": 0.2,
+                    "subjective_audit_prob_temporary": 10.0,
+                    "subjective_audit_prob_permanent": 3.0
+                },
+                "dissatisfied": {
+                    "pso_delta": -0.2,
+                    "trust_delta": -0.1,
+                    "subjective_audit_prob_temporary": 10.0,
+                    "subjective_audit_prob_permanent": 3.0
+                }
+            }
+        }
+    }
+}

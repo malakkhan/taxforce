@@ -1,0 +1,273 @@
+{
+    "private": {
+        "income": {
+            "mean": 41000,
+            "std": 5000
+        },
+        "opportunity": 0.10
+    },
+    "sme": {
+        "size_class_probs": [
+            0.82,
+            0.14,
+            0.04
+        ],
+        "sector_probs": {
+            "Professional": 0.28,
+            "Trade": 0.14,
+            "Construction": 0.11,
+            "Retail": 0.10,
+            "Healthcare": 0.10,
+            "Transport": 0.08,
+            "Hospitality": 0.06,
+            "ICT": 0.05,
+            "PersonalServices": 0.05,
+            "Cleaning": 0.03
+        },
+        "turnover_ranges": {
+            "Micro": [
+                80000,
+                400000
+            ],
+            "Small": [
+                400000,
+                2500000
+            ],
+            "Medium": [
+                2500000,
+                20000000
+            ]
+        },
+        "profit_margin": {
+            "min": 0.05,
+            "max": 0.20
+        },
+        "sectors": {
+            "Hospitality": {
+                "risk": "high",
+                "cash_prob": 0.6,
+                "digital_weights": [
+                    0.5,
+                    0.4,
+                    0.1
+                ],
+                "branches": [
+                    "Kebabzaak",
+                    "Snackbar",
+                    "Grillroom",
+                    "Restaurant",
+                    "Café-bar",
+                    "Lunchroom",
+                    "IJssalon"
+                ],
+                "high_risk_branches": [
+                    "Kebabzaak",
+                    "Snackbar",
+                    "Grillroom",
+                    "Café-bar",
+                    "Lunchroom",
+                    "IJssalon"
+                ]
+            },
+            "Retail": {
+                "risk": "normal",
+                "cash_prob": 0.6,
+                "digital_weights": [
+                    0.3,
+                    0.5,
+                    0.2
+                ],
+                "branches": [
+                    "Supermarkt",
+                    "Kledingwinkel",
+                    "Elektronicazaak",
+                    "Boekenwinkel",
+                    "Drogisterij",
+                    "Speciaalzaak",
+                    "Webshop"
+                ],
+                "high_risk_branches": []
+            },
+            "Construction": {
+                "risk": "high",
+                "cash_prob": 0.3,
+                "digital_weights": [
+                    0.4,
+                    0.4,
+                    0.2
+                ],
+                "branches": [
+                    "Schildersbedrijf",
+                    "Aannemersbedrijf",
+                    "Tegelzetter",
+                    "Loodgietersbedrijf",
+                    "Elektra-installatiebedrijf"
+                ],
+                "high_risk_branches": []
+            },
+            "Transport": {
+                "risk": "normal",
+                "cash_prob": 0.3,
+                "digital_weights": [
+                    0.3,
+                    0.5,
+                    0.2
+                ],
+                "branches": [
+                    "Transportbedrijf",
+                    "Koeriersdienst",
+                    "Distributiecentrum",
+                    "Taxibedrijf"
+                ],
+                "high_risk_branches": [
+                    "Taxibedrijf"
+                ]
+            },
+            "ICT": {
+                "risk": "normal",
+                "cash_prob": 0.1,
+                "digital_weights": [
+                    0.05,
+                    0.25,
+                    0.7
+                ],
+                "branches": [
+                    "Softwarebedrijf",
+                    "IT-consultancy",
+                    "Hostingprovider",
+                    "Data-analysebureau"
+                ],
+                "high_risk_branches": []
+            },
+            "Professional": {
+                "risk": "normal",
+                "cash_prob": 0.1,
+                "digital_weights": [
+                    0.1,
+                    0.4,
+                    0.5
+                ],
+                "branches": [
+                    "Administratiekantoor",
+                    "Accountantskantoor",
+                    "Marketingbureau",
+                    "HR-adviesbureau",
+                    "Detacheringbureau"
+                ],
+                "high_risk_branches": []
+            },
+            "PersonalServices": {
+                "risk": "high",
+                "cash_prob": 0.5,
+                "digital_weights": [
+                    0.5,
+                    0.35,
+                    0.15
+                ],
+                "branches": [
+                    "Nagelstudio",
+                    "Kapsalon",
+                    "Schoonheidssalon",
+                    "Barbershop",
+                    "Tattoo-studio"
+                ],
+                "high_risk_branches": [
+                    "Nagelstudio",
+                    "Kapsalon",
+                    "Barbershop",
+                    "Schoonheidssalon"
+                ]
+            },
+            "Healthcare": {
+                "risk": "normal",
+                "cash_prob": 0.15,
+                "digital_weights": [
+                    0.2,
+                    0.5,
+                    0.3
+                ],
+                "branches": [
+                    "ZZP-verpleging",
+                    "Fysiotherapie",
+                    "Huisarts",
+                    "Tandarts",
+                    "Thuiszorg"
+                ],
+                "high_risk_branches": []
+            },
+            "Trade": {
+                "risk": "high",
+                "cash_prob": 0.40,
+                "digital_weights": [
+                    0.3,
+                    0.5,
+                    0.2
+                ],
+                "branches": [
+                    "Autohandel",
+                    "Groothandel",
+                    "Juwelier",
+                    "Pandjeshuis",
+                    "Tweedehandszaak"
+                ],
+                "high_risk_branches": [
+                    "Autohandel",
+                    "Juwelier",
+                    "Pandjeshuis"
+                ]
+            },
+            "Cleaning": {
+                "risk": "high",
+                "cash_prob": 0.50,
+                "digital_weights": [
+                    0.6,
+                    0.3,
+                    0.1
+                ],
+                "branches": [
+                    "Schoonmaakbedrijf",
+                    "Glazenwasser",
+                    "Huishoudelijke-hulp"
+                ],
+                "high_risk_branches": [
+                    "Huishoudelijke-hulp",
+                    "Schoonmaakbedrijf"
+                ]
+            }
+        },
+        "advisor_probs": {
+            "base": 0.4,
+            "size_bonus": 0.2,
+            "digi_bonus": 0.1,
+            "max": 0.9
+        },
+        "audit_history_probs": [
+            0.75,
+            0.18,
+            0.07
+        ],
+        "opportunity": {
+            "base": 0.50,
+            "cash_bonus": 0.25,
+            "low_digi_bonus": 0.10,
+            "high_digi_penalty": 0.15,
+            "micro_bonus": 0.0,
+            "medium_penalty": 0.0,
+            "high_risk_sector_bonus": 0.0,
+            "min": 0.10,
+            "max": 0.80
+        },
+        "base_risk_baseline": 0.20,
+        "delta_sector_high_risk": 0.20,
+        "delta_branch_high_risk": 0.10,
+        "delta_size_micro": 0.10,
+        "delta_size_medium": -0.05,
+        "delta_cash_intensive": 0.10,
+        "delta_digi_high": -0.10,
+        "delta_digi_low": 0.05,
+        "delta_advisor_yes": -0.10,
+        "delta_advisor_no": 0.05,
+        "delta_audit_books": -0.10,
+        "delta_audit_admin": -0.03
+    }
+}

@@ -1,0 +1,80 @@
+{
+    "belief_strategy": "custom",
+    "belief_strategies": {
+        "hashimzade": {
+            "mu": 0.7,
+            "drift": {
+                "private": {
+                    "mean": 20.0,
+                    "step": 1.5
+                },
+                "business": {
+                    "mean": 22.0,
+                    "step": 1.5
+                }
+            }
+        },
+        "custom": {
+            "mu": 0.7,
+            "drift": {
+                "private": {
+                    "mean": 20.0,
+                    "step": 1.5
+                },
+                "business": {
+                    "mean": 22.0,
+                    "step": 1.5
+                }
+            }
+        }
+    },
+    "belief_update": {
+        "mu": 0.85,
+        "audit_signal_strength": 0.30,
+        "perception_weight": 0.05,
+        "audit_prob_drift_rate": 0.20,
+        "audit_target_prob": 0.75,
+        "audit_prob_response_delta": 25.0
+    },
+    "norm_update": {
+        "social_norm_scale": {
+            "private": 0.0,
+            "business": 0.0
+        },
+        "societal_norm_scale": {
+            "private": 0.0,
+            "business": 0.0
+        }
+    },
+    "trust_update": {
+        "sigma_trust": 0.69,
+        "p_unfair": 0.30
+    },
+    "pso_update": {
+        "sigma_pso": 0.68,
+        "pso_drift_rate": 0.25,
+        "phone_delta_satisfied": 0.4,
+        "phone_delta_dissatisfied": 1.0,
+        "webcare_delta": 0.2,
+        "huba_delta": 1.0,
+        "private": {
+            "huba_prob": 0.0,
+            "phone_prob": 0.5,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.2,
+            "webcare_std": 1.0
+        },
+        "business": {
+            "huba_prob": 0.0,
+            "phone_prob": 0.5,
+            "phone_satisfied_prob": 0.80,
+            "webcare_mean": 3.5,
+            "webcare_std": 1.0
+        }
+    },
+    "social": {
+        "social_influence": 0.10,
+        "pso_boost": 0.0,
+        "trust_boost": 0.0
+    }
+}

@@ -1,0 +1,600 @@
+"""
+Running Page - Execute actual simulation with real model.
+Displays progress and collects results from TaxComplianceModel.
+"""
+import streamlit as st
+import time
+import sys
+from pathlib import Path
+from datetime import datetime
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from core.model import TaxComplianceModel
+from core.config import SimulationConfig, deep_merge
+
+
+def build_config_overrides(params: dict) -> dict:
+    """
+    Convert dashboard params to config override structure.
+    Only includes values that the dashboard sets - no redundant defaults.
+    """
+    overrides = {}
+    
+    # Simulation settings
+    overrides["simulation"] = {
+        "n_agents": params.get("n_agents"),
+        "business_ratio": params.get("business_ratio"),
+    }
+    
+    # Enforcement settings
+    overrides["enforcement"] = {
+        "tax_rate": params.get("tax_rate"),
+        "penalty_rate": params.get("penalty_rate"),
+        "audit_rate": {
+            "private": params.get("audit_rate_private"),
+            "business": params.get("audit_rate_business"),
+        },
+        "audit_strategy": params.get("audit_strategy"),
+    }
+
+    # Audit Depth (New)
+    audit_books_prob = params.get("audit_depth_books")
+    if audit_books_prob is not None:
+        overrides["enforcement"]["audit_type_probs"] = {
+            "books": audit_books_prob,
+            "admin": 1.0 - audit_books_prob
+        }
+    
+    # Behavior distribution
+    honest_ratio = params.get("honest_ratio")
+    if honest_ratio is not None:
+        overrides["behaviors"] = {
+            "override_distribution": True,
+            "distribution": {
+                "honest": honest_ratio,
+                "dishonest": 1.0 - honest_ratio,
+            }
+        }
+    
+    # Network settings
+    overrides["network"] = {
+        "homophily": params.get("homophily"),
+        "degree_mean": params.get("degree_mean"),
+        "degree_std": params.get("degree_std"),
+    }
+    
+    # Social dynamics
+    overrides["social"] = {
+        "social_influence": params.get("social_influence"),
+        # Legacy boosts deprecated, but kept just in case
+        "pso_boost": params.get("pso_boost", 0.0),
+        "trust_boost": params.get("trust_boost", 0.0),
+    }
+
+    # Service & Transparency Update (New)
+    pso_overrides = {}
+    
+    # Phone Satisfaction (apply to both sectors)
+    phone_sat = params.get("phone_sat")
+    if phone_sat is not None:
+        # Value is already a probability (0-1) from simulate.py
+        prob = phone_sat
+        pso_overrides.setdefault("private", {})["phone_satisfied_prob"] = prob
+        pso_overrides.setdefault("business", {})["phone_satisfied_prob"] = prob
+        
+    # Webcare Quality
+    web_qual_priv = params.get("web_qual_private")
+    if web_qual_priv is not None:
+        pso_overrides.setdefault("private", {})["webcare_mean"] = web_qual_priv
+        
+    web_qual_biz = params.get("web_qual_business")
+    if web_qual_biz is not None:
+        pso_overrides.setdefault("business", {})["webcare_mean"] = web_qual_biz
+        
+    # Legacy fallbacks
+    web_qual = params.get("web_qual")
+    if web_qual is not None:
+        pso_overrides.setdefault("private", {})["webcare_mean"] = web_qual
+        pso_overrides.setdefault("business", {})["webcare_mean"] = web_qual
+
+    if pso_overrides:
+        overrides["pso_update"] = pso_overrides
+
+    # Transparency (Trust)
+    is_transparent = params.get("transparency")
+    if is_transparent is not None:
+        # If transparent, significantly reduce the chance of perceiving audits as unfair
+        # Default is 0.30, Transparency campaign reduces it to 0.10
+        overrides["trust_update"] = {"p_unfair": 0.10 if is_transparent else 0.30}
+    
+    # Norm Update Scales
+    norm_update = params.get("norm_update", {})
+    if norm_update:
+        overrides["norm_update"] = norm_update
+    
+    # Helper to clean trait dicts
+    def clean_traits(t_dict):
+        cleaned = {}
+        # Identify all base keys (removing _mean/_std suffixes)
+        base_keys = set()
+        for k in t_dict.keys():
+            if k.endswith("_mean"):
+                base_keys.add(k[:-5])
+            elif k.endswith("_std"):
+                base_keys.add(k[:-4])
+        
+        # known mappings
+        key_map = {
+            "pso": "pso",
+            "trust": "p_trust",
+            "personal_norms": "personal_norms",
+            "social_norms": "social_norms",
+            "societal_norms": "societal_norms",
+            "subjective_audit_prob": "subjective_audit_prob",
+            "risk_aversion": "risk_aversion"
+        }
+        
+        for key in base_keys:
+            actual_key = key_map.get(key, key)
+            entry = {}
+            if f"{key}_mean" in t_dict:
+                entry["mean"] = t_dict[f"{key}_mean"]
+            if f"{key}_std" in t_dict:
+                entry["std"] = t_dict[f"{key}_std"]
+            
+            if entry:
+                cleaned[actual_key] = entry
+                
+        return cleaned
+
+    # Traits - Private
+    traits_private = params.get("traits_private", {})
+    if traits_private:
+        overrides.setdefault("traits", {})["private"] = clean_traits(traits_private)
+    
+    # Traits - Business
+    traits_business = params.get("traits_business", {})
+    if traits_business:
+        overrides.setdefault("traits", {})["business"] = clean_traits(traits_business)
+
+    # Risk Aversion (New - Apply to both)
+    risk_aversion = params.get("risk_aversion")
+    if risk_aversion is not None:
+         overrides.setdefault("traits", {}).setdefault("private", {})["risk_aversion"] = {"mean": risk_aversion}
+         overrides.setdefault("traits", {}).setdefault("business", {})["risk_aversion"] = {"mean": risk_aversion}
+    
+    # Private income
+    if "income_mean" in traits_private:
+        overrides["private"] = {"income": {"mean": traits_private["income_mean"]}}
+    
+    # Belief strategy drift - sync with subjective audit prob
+    priv_audit = traits_private.get("subjective_audit_prob_mean")
+    biz_audit = traits_business.get("subjective_audit_prob_mean")
+    if priv_audit is not None or biz_audit is not None:
+        drift = {}
+        if priv_audit is not None:
+            drift["private"] = {"mean": priv_audit}
+        if biz_audit is not None:
+            drift["business"] = {"mean": biz_audit}
+        overrides["belief_strategies"] = {"hashimzade": {"drift": drift}}
+    
+    # SME Risk parameters
+    sme_risk = params.get("sme_risk", {})
+    if sme_risk:
+        sme_overrides = {}
+        if "base" in sme_risk:
+            sme_overrides["base_risk_baseline"] = sme_risk["base"]
+        if "delta_sector" in sme_risk:
+            sme_overrides["delta_sector_high_risk"] = sme_risk["delta_sector"]
+        if "delta_cash" in sme_risk:
+            sme_overrides["delta_cash_intensive"] = sme_risk["delta_cash"]
+        if "delta_digi_high" in sme_risk:
+            sme_overrides["delta_digi_high"] = sme_risk["delta_digi_high"]
+        if "delta_advisor" in sme_risk:
+            # Dashboard sets a single value, apply to both yes/no
+            sme_overrides["delta_advisor_yes"] = -abs(sme_risk["delta_advisor"])
+            sme_overrides["delta_advisor_no"] = abs(sme_risk["delta_advisor"])
+        if "delta_audit" in sme_risk:
+            # Dashboard sets a single value, apply to books (stronger)
+            sme_overrides["delta_audit_books"] = -abs(sme_risk["delta_audit"])
+            sme_overrides["delta_audit_admin"] = -abs(sme_risk["delta_audit"]) * 0.3
+        
+        if sme_overrides:
+            overrides["sme"] = sme_overrides
+            
+    # SME Opportunity (New)
+    sme_opp = params.get("sme_opportunity", {})
+    if sme_opp:
+        # simulate.py structure matches config structure for top-level keys
+        # except it uses 'min'/'max' which are correct.
+        # Just assign it directly under sme.opportunity
+        overrides.setdefault("sme", {})["opportunity"] = sme_opp
+
+    # Error Model (New)
+    error_model = params.get("error_model", {})
+    if error_model:
+        em_overrides = {}
+        if "enabled" in error_model: 
+            em_overrides["enabled"] = error_model["enabled"]
+        if "under_report_prob" in error_model: 
+            em_overrides["under_report_prob"] = error_model["under_report_prob"]
+        
+        # Map flat rates to nested structure
+        if "rate_private" in error_model: 
+            em_overrides.setdefault("private", {})["base"] = error_model["rate_private"]
+        if "rate_business" in error_model: 
+            em_overrides.setdefault("business", {})["base"] = error_model["rate_business"]
+        
+        # Map magnitude
+        if "magnitude_min" in error_model or "magnitude_max" in error_model:
+            mag = {}
+            if "magnitude_min" in error_model: mag["min"] = error_model["magnitude_min"]
+            if "magnitude_max" in error_model: mag["max"] = error_model["magnitude_max"]
+            em_overrides["magnitude"] = mag
+            
+        overrides["error_model"] = em_overrides
+
+    # Belief Update Globals (New)
+    belief_overrides = {}
+    if params.get("belief_mu") is not None: belief_overrides["mu"] = params.get("belief_mu")
+    if params.get("belief_signal") is not None: belief_overrides["audit_signal_strength"] = params.get("belief_signal")
+    if params.get("belief_perception") is not None: belief_overrides["perception_weight"] = params.get("belief_perception")
+    if params.get("belief_drift") is not None: belief_overrides["audit_prob_drift_rate"] = params.get("belief_drift")
+    if params.get("belief_delta") is not None: belief_overrides["audit_prob_response_delta"] = params.get("belief_delta")
+    if params.get("belief_target") is not None: belief_overrides["audit_target_prob"] = params.get("belief_target")
+    
+    if belief_overrides:
+        overrides["belief_update"] = belief_overrides
+    
+    # Clean up None values from overrides
+    def remove_none(d):
+        if isinstance(d, dict):
+            return {k: remove_none(v) for k, v in d.items() if v is not None}
+        return d
+    
+    return remove_none(overrides)
+
+
+def run_simulation(params: dict, progress_callback=None):
+    """
+    Run the actual simulation and return results.
+    """
+    n_steps = params.get("n_steps", 50)
+    n_runs = params.get("n_runs", 1)
+    
+    # Build config with overrides
+    defaults = SimulationConfig.load_defaults()
+    overrides = build_config_overrides(params)
+    config_data = deep_merge(defaults, overrides)
+    cfg = SimulationConfig(config_data)
+    
+    # Aggregate results across runs
+    all_compliance = []
+    all_tax_gap = []
+    all_taxes = []
+    all_audits = []
+    all_declaration_ratio = []
+    all_tax_morale = []
+    all_four = []
+    all_pso = []
+    all_mgtr = []
+    all_mgtr = []
+    all_penalties = []
+    all_mkb_gap = []
+    all_mkb_error = []
+    
+    total_iterations = n_runs * n_steps
+    current_iteration = 0
+    
+    for run_idx in range(n_runs):
+        # Create fresh model for each run
+        model = TaxComplianceModel(config=cfg, seed=42 + run_idx)
+        
+        run_compliance = []
+        run_tax_gap = []
+        run_taxes = []
+        run_audits = []
+        run_declaration_ratio = []
+        run_tax_morale = []
+        run_four = []
+        run_pso = []
+        run_mgtr = []
+        run_penalties = []
+        run_mkb_gap = []
+        run_mkb_error = []
+        
+        for step in range(n_steps):
+            model.step()
+            
+            # Collect metrics after each step
+            df = model.datacollector.get_model_vars_dataframe()
+            if len(df) > 0:
+                # Helper to unpack tuple or keep single value
+                def unpack(val, default=(0.0, 0.0)):
+                    if isinstance(val, tuple) and len(val) == 2:
+                        return val
+                    return (val, val) # Fallback for backward compat or if model didn't return tuple
+
+                comp_p, comp_b = unpack(df['Compliance_Rate'].iloc[-1])
+                run_compliance.append((comp_p, comp_b))
+                
+                gap_p, gap_b = unpack(df['Tax_Gap'].iloc[-1])
+                run_tax_gap.append((gap_p, gap_b))
+                
+                # Total Taxes splits (Priv, Biz)
+                tax_p, tax_b = unpack(df['Total_Taxes'].iloc[-1])
+                run_taxes.append((tax_p, tax_b))
+                
+                # Audits splits
+                aud_p, aud_b = unpack(df['Audits'].iloc[-1])
+                run_audits.append((aud_p, aud_b))
+                
+                dec_p, dec_b = unpack(df['Avg_Declaration_Ratio'].iloc[-1])
+                run_declaration_ratio.append((dec_p, dec_b))
+                
+                mor_p, mor_b = unpack(df['Tax_Morale'].iloc[-1])
+                run_tax_morale.append((mor_p, mor_b))
+                
+                four_p, four_b = unpack(df['Avg_FOUR'].iloc[-1])
+                run_four.append((four_p, four_b))
+                
+                run_pso.append(df['Avg_PSO'].iloc[-1])
+                run_mgtr.append(df['MGTR'].iloc[-1])
+                
+                pen_p, pen_b = unpack(df['Penalties'].iloc[-1])
+                run_penalties.append((pen_p, pen_b))
+                
+                run_mkb_gap.append(df['MKB_Total_Gap'].iloc[-1])
+                run_mkb_error.append(df['MKB_Error_Gap'].iloc[-1])
+            
+            # Update progress
+            current_iteration += 1
+            if progress_callback:
+                progress_callback(current_iteration / total_iterations, 
+                                  f"Run {run_idx+1}/{n_runs}, Step {step+1}/{n_steps}")
+        
+        all_compliance.append(run_compliance)
+        all_tax_gap.append(run_tax_gap)
+        all_taxes.append(run_taxes)
+        all_audits.append(run_audits)
+        all_declaration_ratio.append(run_declaration_ratio)
+        all_tax_morale.append(run_tax_morale)
+        all_four.append(run_four)
+        all_pso.append(run_pso)
+        all_mgtr.append(run_mgtr)
+        all_penalties.append(run_penalties)
+        all_mkb_gap.append(run_mkb_gap)
+        all_mkb_error.append(run_mkb_error)
+    
+    # Average across runs
+    # Average across runs
+    import numpy as np
+    
+    # helper for averaging tuples (n_runs, n_steps, 2)
+    def avg_tuples(all_data):
+        # Shape: (n_runs, n_steps, 2)
+        arr = np.array(all_data)
+        # Average over runs (axis 0) -> (n_steps, 2)
+        avg_arr = np.mean(arr, axis=0)
+        # Split into two lists: priv, biz
+        priv = avg_arr[:, 0].tolist()
+        biz = avg_arr[:, 1].tolist()
+        return priv, biz
+
+    # Calculate splits
+    comp_priv, comp_biz = avg_tuples(all_compliance)
+    gap_priv, gap_biz = avg_tuples(all_tax_gap)
+    taxes_priv, taxes_biz = avg_tuples(all_taxes)
+    dec_priv, dec_biz = avg_tuples(all_declaration_ratio)
+    mor_priv, mor_biz = avg_tuples(all_tax_morale)
+    four_priv, four_biz = avg_tuples(all_four)
+    four_priv, four_biz = avg_tuples(all_four)
+    # pso_priv, pso_biz = avg_tuples(all_pso) # Removed: PSO is now 1D aggregate
+    
+    # Calculate weighted / summed totals for backward compatibility
+    # Compliance: weighted by agent count (simplified: assume 50/50? NO, use population ratio)
+    # BETTER: Just derive it from the lists if we had population counts per step?
+    # Actually, model.py already returned accurate per-group averages.
+    # To get total average, we need weights. 
+    # BUT, we also have the original Total logic which was: sum(compliant)/total.
+    # Since we replaced the reporter, we lost the direct "Total" output unless we returned a triplet.
+    # User said: "reading the whole list and setting both equal to each other" -> implies keeping simplicity.
+    # Let's reconstruct totals using `params`?
+    # n_agents = params.get("n_agents", 1000)
+    # biz_ratio = params.get("business_ratio", 0.0) # wait, might be None
+    
+    # Use config overrides to find ratio?
+    # Simpler: The "Private" and "Business" lists ARE the data now.
+    # To get "Total Compliance" for the chart, we can weight them:
+    # C_total = (C_p * N_p + C_b * N_b) / N
+    
+    # Let's retrieve ratio from params to do this aggregation correctly
+    b_ratio = params.get("business_ratio", 0.15) # Default 0.15 if missing
+    p_ratio = 1.0 - b_ratio
+    
+    def weighted_avg(list_p, list_b):
+        return [(p * p_ratio + b * b_ratio) for p, b in zip(list_p, list_b)]
+        
+    avg_compliance = weighted_avg(comp_priv, comp_biz)
+    avg_declaration_ratio = weighted_avg(dec_priv, dec_biz)
+    avg_tax_morale = weighted_avg(mor_priv, mor_biz)
+    avg_four = weighted_avg(four_priv, four_biz)
+    # PSO & MGTR reverted to aggregate
+    avg_pso = np.mean(all_pso, axis=0).tolist()
+    
+    # MGTR: (Tax + Pen) / True Income.
+    avg_mgtr = np.mean(all_mgtr, axis=0).tolist()
+    
+    
+    # MKB Gaps (Single value per step, no split)
+    # Using simple mean across runs
+    avg_mkb_gap = np.mean(all_mkb_gap, axis=0).tolist()
+    avg_mkb_error = np.mean(all_mkb_error, axis=0).tolist()
+    
+    # For sums (Gap, Taxes), Total = Priv + Biz
+    def sum_lists(list_p, list_b):
+        return [(p + b) for p, b in zip(list_p, list_b)]
+        
+    avg_tax_gap = sum_lists(gap_priv, gap_biz)
+    avg_taxes = sum_lists(taxes_priv, taxes_biz)
+    
+    # MGTR: (Tax + Pen) / True Income.
+    # Reverted to simple aggregate mean
+    avg_mgtr = np.mean(all_mgtr, axis=0).tolist()
+    
+    # Audits: Sum
+    aud_priv, aud_biz = avg_tuples(all_audits)
+    # Total audits per step is sum of priv+biz, then sum over steps
+    total_audits = int(sum(sum_lists(aud_priv, aud_biz)))
+    
+    # Penalties: Sum
+    pen_priv, pen_biz = avg_tuples(all_penalties)
+    total_penalties = float(sum(sum_lists(pen_priv, pen_biz)))
+    
+    # Build results dict
+    results = {
+        # Original (Aggregated)
+        "compliance_over_time": avg_compliance,
+        "tax_gap_over_time": avg_tax_gap,
+        "taxes_over_time": avg_taxes,
+        "declaration_ratio_over_time": avg_declaration_ratio,
+        "tax_morale_over_time": avg_tax_morale,
+        "four_over_time": avg_four,
+        "pso_over_time": avg_pso,
+        "mgtr_over_time": avg_mgtr,
+        
+        # New (Splits)
+        "compliance_priv": comp_priv, "compliance_biz": comp_biz,
+        "tax_gap_priv": gap_priv, "tax_gap_biz": gap_biz,
+        "declaratio_priv": dec_priv, "declaration_biz": dec_biz,
+        "morale_priv": mor_priv, "morale_biz": mor_biz,
+        "four_priv": four_priv, "four_biz": four_biz,
+        # "pso_priv": pso_priv, "pso_biz": pso_biz, # Removed per feedback
+        # "mgtr_priv": mgtr_priv, "mgtr_biz": mgtr_biz, # Removed per feedback
+        
+        # Aggregates
+        "total_taxes": int(np.mean([sum(sum(r) for r in run) for run in all_taxes])), # Sum of (p+b) over steps, mean over runs
+        "total_tax_gap": int(np.mean([sum(sum(r) for r in run) for run in all_tax_gap])),
+        "final_tax_gap": float(avg_tax_gap[-1]), 
+        "final_compliance": float(avg_compliance[-1]) if avg_compliance else 0.0,
+        "initial_compliance": float(avg_compliance[0]) if avg_compliance else 0.0,
+        "max_compliance": float(max(avg_compliance)) if avg_compliance else 0.0,
+        "final_declaration_ratio": float(avg_declaration_ratio[-1]) if avg_declaration_ratio else 1.0,
+        "final_tax_morale": float(avg_tax_morale[-1]) if avg_tax_morale else 0.0,
+        "initial_tax_morale": float(avg_tax_morale[0]) if avg_tax_morale else 0.0,
+        "final_four": float(avg_four[-1]) if avg_four else 0.0,
+        "final_pso": float(avg_pso[-1]) if avg_pso else 0.0,
+        "final_mgtr": float(avg_mgtr[-1]) if avg_mgtr else 0.0,
+        "total_penalties": total_penalties,
+        "total_audits": total_audits,
+        "mkb_gap_over_time": avg_mkb_gap,
+        "mkb_error_over_time": avg_mkb_error,
+    }
+    
+    return results
+
+
+def render():
+    """Render the simulation running page."""
+    
+    # Aggressive CSS to hide any leftover elements from previous page
+    # Uses a pseudo-element to create a solid background that covers remnants
+    st.markdown("""
+        <style>
+        /* Hide any expanders that might be leftover from simulate page */
+        [data-testid="stExpander"] {
+            display: none !important;
+        }
+        
+        /* Ensure running page has clean background */
+        .main .block-container {
+            padding-top: 2rem !important;
+            background: #E8F4FD !important;
+            min-height: 100vh !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Get simulation parameters
+    params = st.session_state.get("simulation_params", {})
+    if not params:
+        st.session_state.current_page = "simulate"
+        st.rerun()
+        return
+    
+    # Use a single container that takes up the viewport
+    main_container = st.container()
+    
+    with main_container:
+        # Create centered layout
+        spacer1, center, spacer2 = st.columns([1, 2, 1])
+        
+        with center:
+            st.write("")
+            st.write("")
+            st.write("")
+            
+            # Progress card
+            with st.container(border=True):
+                st.markdown("### Running simulation...")
+                st.caption("Executing tax compliance model")
+                
+                st.write("")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                st.write("")
+                
+                # Cancel button placeholder
+                cancel_col1, cancel_col2, cancel_col3 = st.columns([1, 1, 1])
+                with cancel_col2:
+                    cancel_placeholder = st.empty()
+            
+            st.write("")
+    
+    # Progress callback
+    def update_progress(progress, status):
+        progress_bar.progress(progress)
+        status_text.markdown(f"**{status}**")
+    
+    # Run actual simulation
+    try:
+        results_data = run_simulation(params, update_progress)
+        
+        # Store results in session
+        st.session_state.simulation_results = results_data
+        st.session_state.simulation_params_used = params
+        
+        # Add to history (disk persistence)
+        try:
+            from utils.history import add_history_entry
+            
+            history_entry = {
+                "date": datetime.now().strftime("%b %d, %Y, %I:%M:%S %p"),
+                "n_agents": params.get("n_agents", 1000),
+                "n_steps": params.get("n_steps", 50),
+                "total_taxes": results_data["total_taxes"],
+                "tax_gap": results_data["final_tax_gap"],
+                "compliance": results_data["final_compliance"],
+                "audits": results_data["total_audits"],
+                "results": results_data,
+                "params": params,
+            }
+            add_history_entry(history_entry)
+        except Exception as e:
+            # Log the error for debugging but don't crash
+            import logging
+            logging.warning(f"Failed to save history: {e}")
+        
+        time.sleep(0.3)
+        st.session_state.current_page = "results"
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"Simulation failed: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
+        if st.button("Back to Configuration"):
+            st.session_state.current_page = "simulate"
+            st.rerun()

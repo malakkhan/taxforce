@@ -1,0 +1,15 @@
+# Exact versions used in this project
+# Generated from pip freeze
+
+# Core simulation dependencies
+Mesa==3.0.3
+numpy==1.26.4
+networkx==3.4.2
+scipy==1.13.1
+numba==0.63.1
+
+# Dashboard dependencies
+streamlit==1.45.1
+streamlit-nested-layout==0.1.4
+plotly==6.1.2
+toml==0.10.2
