@@ -1517,8 +1517,8 @@ def _apply_config_to_state(config_data: dict):
     # SIMULATION SETUP
     # =====================================================
     sim = merged.get("simulation", {})
-    set_state("pop_slider", clamp(sim.get("n_agents", 1000), 500, 10000))
-    set_state("dur_slider", clamp(sim.get("n_steps", 50), 10, 100))
+    set_state("pop_slider", clamp(sim.get("n_agents", 1000), 500, 100000))
+    set_state("dur_slider", clamp(sim.get("n_steps", 50), 10, 1000))
     # n_runs not in config files, keep default
     
     # =====================================================
@@ -1533,7 +1533,7 @@ def _apply_config_to_state(config_data: dict):
     if audit_interv and audit_interv.get("rate"):
         # Use interventions schema
         set_state("priv_audit_slider", clamp(audit_interv.get("rate", {}).get("private", 0.01) * 100, 0.0, 10.0))
-        set_state("biz_audit_slider", clamp(audit_interv.get("rate", {}).get("business", 0.01) * 100, 0.0, 5.0))
+        set_state("biz_audit_slider", clamp(audit_interv.get("rate", {}).get("business", 0.01) * 100, 0.0, 10.0))
         
         strategy = audit_interv.get("selection_strategy", "random")
         if strategy in ["random", "risk_based", "network"]:
@@ -1551,7 +1551,7 @@ def _apply_config_to_state(config_data: dict):
         
         # Business audit rate
         biz_audit = audit_rate.get("business", 0.01) * 100
-        set_state("biz_audit_slider", clamp(biz_audit, 0.0, 5.0))
+        set_state("biz_audit_slider", clamp(biz_audit, 0.0, 10.0))
         
         # Audit depth
         audit_type_probs = enf.get("audit_type_probs", {})
@@ -1577,9 +1577,9 @@ def _apply_config_to_state(config_data: dict):
         set_state("sel_letter_strategy", letters.get("selection_strategy"))
         
     letter_eff = letters.get("effects", {})
-    set_state("letter_eff_perm", letter_eff.get("subjective_audit_prob_permanent", 1.0))
-    set_state("letter_eff_temp", letter_eff.get("subjective_audit_prob_temporary", 12.0))
-    set_state("letter_eff_trust", letter_eff.get("trust_delta", -0.1))
+    set_state("letter_eff_perm", clamp(letter_eff.get("subjective_audit_prob_permanent", 1.0), 0.0, 20.0))
+    set_state("letter_eff_temp", clamp(letter_eff.get("subjective_audit_prob_temporary", 12.0), 0.0, 50.0))
+    set_state("letter_eff_trust", clamp(letter_eff.get("trust_delta", -0.1), -1.0, 1.0))
 
     # Phone
     phone = interv.get("call", {})
@@ -1590,9 +1590,9 @@ def _apply_config_to_state(config_data: dict):
         set_state("sel_phone_strategy", phone.get("selection_strategy"))
         
     phone_eff = phone.get("effects", {})
-    set_state("phone_sat_delta", phone_eff.get("satisfied", {}).get("pso_delta", 0.3))
-    set_state("phone_dissat_delta", phone_eff.get("dissatisfied", {}).get("pso_delta", -0.2))
-    set_state("phone_eff_audit_temp", phone_eff.get("satisfied", {}).get("subjective_audit_prob_temporary", 8.0))
+    set_state("phone_sat_delta", clamp(phone_eff.get("satisfied", {}).get("pso_delta", 0.3), -1.0, 1.0))
+    set_state("phone_dissat_delta", clamp(phone_eff.get("dissatisfied", {}).get("pso_delta", -0.2), -1.0, 1.0))
+    set_state("phone_eff_audit_temp", clamp(phone_eff.get("satisfied", {}).get("subjective_audit_prob_temporary", 8.0), 0.0, 50.0))
 
     # =====================================================
     # TAX AUTHORITY STRATEGY - SERVICE
@@ -1613,7 +1613,7 @@ def _apply_config_to_state(config_data: dict):
     set_state("web_qual_biz_slider", clamp(web_qual_biz, 1.0, 5.0))
     
     # Transparency (HUBA)
-    set_state("huba_delta", pso_update.get("huba_delta", 1.0))
+    set_state("huba_delta", clamp(pso_update.get("huba_delta", 1.0), 0.0, 5.0))
     
     # Transparency toggle logic
     trust_upd = merged.get("trust_update", {})
@@ -1795,8 +1795,8 @@ def load_params_into_state(params: dict):
             st.session_state[sync_key] += 1
 
     # Simulation
-    set_state("pop_slider", clamp(params.get("n_agents", 1000), 500, 2500))
-    set_state("dur_slider", clamp(params.get("n_steps", 50), 10, 100))
+    set_state("pop_slider", clamp(params.get("n_agents", 1000), 500, 100000))
+    set_state("dur_slider", clamp(params.get("n_steps", 50), 10, 1000))
     set_state("run_slider", clamp(params.get("n_runs", 1), 1, 10))
     
     # Enforcement
@@ -1809,12 +1809,101 @@ def load_params_into_state(params: dict):
         set_state("sel_audit", strategy)
     
     set_state("priv_audit_slider", clamp(params.get("audit_rate_private", 0.01) * 100, 0.0, 10.0))
-    set_state("biz_audit_slider", clamp(params.get("audit_rate_business", 0.01) * 100, 0.0, 5.0))
+    set_state("biz_audit_slider", clamp(params.get("audit_rate_business", 0.01) * 100, 0.0, 10.0))
     
     # biz_ratio uses standard sync mechanism
-    set_state("biz_ratio_slider", biz_ratio_val)
+    set_state("biz_ratio_slider", clamp(params.get("business_ratio", 0.179) * 100, 0.0, 100.0))
     
+    # Interventions
+    set_state("letter_enabled", params.get("letter_enabled", False))
+    set_state("letter_rate_priv_slider", clamp(params.get("letter_rate_private", 0.02) * 100, 0.0, 10.0))
+    set_state("letter_rate_biz_slider", clamp(params.get("letter_rate_business", 0.03) * 100, 0.0, 10.0))
+    set_state("sel_letter_strategy", params.get("letter_strategy", "random"))
+    set_state("letter_eff_perm", clamp(params.get("letter_eff_perm", 1.0), 0.0, 20.0))
+    set_state("letter_eff_temp", clamp(params.get("letter_eff_temp", 12.0), 0.0, 50.0))
+    set_state("letter_eff_trust", clamp(params.get("letter_eff_trust", -0.1), -1.0, 1.0))
+
+    set_state("phone_enabled", params.get("phone_enabled", False))
+    set_state("phone_rate_priv_slider", clamp(params.get("phone_rate_private", 0.01) * 100, 0.0, 10.0))
+    set_state("phone_rate_biz_slider", clamp(params.get("phone_rate_business", 0.03) * 100, 0.0, 10.0))
+    set_state("sel_phone_strategy", params.get("phone_strategy", "random"))
+    set_state("phone_sat_delta", clamp(params.get("phone_sat_delta", 0.3), -1.0, 1.0))
+    set_state("phone_dissat_delta", clamp(params.get("phone_dissat_delta", -0.2), -1.0, 1.0))
+    set_state("phone_eff_audit_temp", clamp(params.get("phone_eff_audit_temp", 8.0), 0.0, 50.0))
+
+    # Service
+    set_state("phone_sat_slider", clamp(params.get("phone_sat", 0.8) * 100, 50.0, 99.0))
+    set_state("web_qual_priv_slider", clamp(params.get("web_qual_private", 3.2), 1.0, 5.0))
+    set_state("web_qual_biz_slider", clamp(params.get("web_qual_business", 3.5), 1.0, 5.0))
+    set_state("transparency_toggle", params.get("transparency", False))
+    set_state("huba_delta", clamp(params.get("huba_delta", 1.0), 0.0, 5.0))
+
     # Network/Social
     set_state("net_homo", clamp(params.get("homophily", 0.80), 0.0, 1.0))
     set_state("net_deg", clamp(params.get("degree_mean", 86.27), 5.0, 300.0))
     set_state("soc_inf_slider", clamp(params.get("social_influence", 0.5), 0.0, 1.0))
+    
+    # Belief Dynamics
+    set_state("belief_mu", clamp(params.get("belief_mu", 0.85), 0.0, 1.0))
+    set_state("belief_drift", clamp(params.get("belief_drift", 0.1), 0.0, 1.0))
+    set_state("belief_signal", clamp(params.get("belief_signal", 0.3), 0.0, 100.0))
+    set_state("belief_perception", clamp(params.get("belief_perception", 0.05), 0.0, 1.0))
+    set_state("belief_delta", clamp(params.get("belief_delta", 25.0), 0.0, 100.0))
+    set_state("belief_target", clamp(params.get("belief_target", 0.75), 0.0, 1.0))
+
+    # SME Specifics
+    sme_risk = params.get("sme_risk", {})
+    set_state("risk_base", clamp(sme_risk.get("base", 0.2), 0.0, 1.0))
+    set_state("delta_sector", clamp(sme_risk.get("delta_sector", 0.2), 0.0, 0.5))
+    set_state("delta_cash", clamp(sme_risk.get("delta_cash", 0.1), 0.0, 0.5))
+    set_state("delta_digi_high", clamp(sme_risk.get("delta_digi_high", -0.1), -0.5, 0.0))
+    set_state("delta_advisor", clamp(sme_risk.get("delta_advisor", -0.1), -0.5, 0.0))
+    set_state("delta_audit", clamp(sme_risk.get("delta_audit", -0.1), -0.5, 0.0))
+
+    sme_opp = params.get("sme_opportunity", {})
+    set_state("sme_opp_base_slider", clamp(sme_opp.get("base", 0.35), 0.0, 1.0))
+    set_state("sme_opp_min", clamp(sme_opp.get("min", 0.10), 0.0, 1.0))
+    set_state("sme_opp_max", clamp(sme_opp.get("max", 0.80), 0.0, 1.0))
+    set_state("sme_opp_cash", clamp(sme_opp.get("cash_bonus", 0.25), 0.0, 1.0))
+    set_state("sme_opp_digi_low", clamp(sme_opp.get("low_digi_bonus", 0.10), 0.0, 1.0))
+
+    # Error Model
+    err = params.get("error_model", {})
+    set_state("error_enabled", err.get("enabled", False))
+    set_state("error_rate_priv", clamp(err.get("rate_private", 0.005) * 100, 0.0, 10.0))
+    set_state("error_rate_biz", clamp(err.get("rate_business", 0.35) * 100, 0.0, 50.0))
+    set_state("error_mag_min", clamp(err.get("magnitude_min", 0.12) * 100, 0.1, 100.0))
+    set_state("error_mag_max", clamp(err.get("magnitude_max", 0.23) * 100, 0.1, 100.0))
+    set_state("error_under_prob", clamp(err.get("under_report_prob", 0.90) * 100, 0.0, 100.0))
+
+    # Traits - Private
+    tr_priv = params.get("traits_private", {})
+    if tr_priv:
+        set_state("priv_audit_mean", clamp(tr_priv.get("subjective_audit_prob_mean", 10.0), 0.0, 100.0))
+        set_state("priv_audit_std", clamp(tr_priv.get("subjective_audit_prob_std", 5.0), 0.0, 50.0))
+        set_state("priv_pn_mean", clamp(tr_priv.get("personal_norms_mean", 3.4), 1.0, 5.0))
+        set_state("priv_pn_std", clamp(tr_priv.get("personal_norms_std", 1.15), 0.0, 2.0))
+        set_state("priv_sn_mean", clamp(tr_priv.get("social_norms_mean", 3.42), 1.0, 5.0))
+        set_state("priv_sn_std", clamp(tr_priv.get("social_norms_std", 1.06), 0.0, 2.0))
+        set_state("priv_stn_mean", clamp(tr_priv.get("societal_norms_mean", 3.97), 1.0, 5.0))
+        set_state("priv_stn_std", clamp(tr_priv.get("societal_norms_std", 1.01), 0.0, 2.0))
+        set_state("priv_pso_mean", clamp(tr_priv.get("pso_mean", 3.22), 1.0, 5.0))
+        set_state("priv_pso_std", clamp(tr_priv.get("pso_std", 0.68), 0.0, 2.0))
+        set_state("priv_pt_mean", clamp(tr_priv.get("p_trust_mean", 3.37), 1.0, 5.0))
+        set_state("priv_pt_std", clamp(tr_priv.get("p_trust_std", 0.69), 0.0, 2.0))
+
+    # Traits - Business
+    tr_biz = params.get("traits_business", {})
+    if tr_biz:
+        set_state("biz_audit_mean", clamp(tr_biz.get("subjective_audit_prob_mean", 22.0), 0.0, 100.0))
+        set_state("biz_audit_std", clamp(tr_biz.get("subjective_audit_prob_std", 5.0), 0.0, 50.0))
+        set_state("biz_pn_mean", clamp(tr_biz.get("personal_norms_mean", 3.82), 1.0, 5.0))
+        set_state("biz_pn_std", clamp(tr_biz.get("personal_norms_std", 1.04), 0.0, 2.0))
+        set_state("biz_sn_mean", clamp(tr_biz.get("social_norms_mean", 3.82), 1.0, 5.0))
+        set_state("biz_sn_std", clamp(tr_biz.get("social_norms_std", 1.02), 0.0, 2.0))
+        set_state("biz_stn_mean", clamp(tr_biz.get("societal_norms_mean", 4.12), 1.0, 5.0))
+        set_state("biz_stn_std", clamp(tr_biz.get("societal_norms_std", 0.98), 0.0, 2.0))
+        set_state("biz_pso_mean", clamp(tr_biz.get("pso_mean", 3.18), 1.0, 5.0))
+        set_state("biz_pso_std", clamp(tr_biz.get("pso_std", 0.67), 0.0, 2.0))
+        set_state("biz_pt_mean", clamp(tr_biz.get("p_trust_mean", 3.37), 1.0, 5.0))
+        set_state("biz_pt_std", clamp(tr_biz.get("p_trust_std", 0.69), 0.0, 2.0))
