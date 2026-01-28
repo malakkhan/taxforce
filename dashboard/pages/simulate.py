@@ -165,6 +165,36 @@ def _get_default_values():
         # Widget Key Aliases (For conditional widgets with mismatched keys)
         "tci_threshold_priv_slider": _cfg.behaviors["compliance_inclination"]["private"]["threshold"],
         "tci_threshold_biz_slider": _cfg.behaviors["compliance_inclination"]["business"]["threshold"],
+        
+        # Private Traits (Explicit Widget Keys)
+        "priv_audit_mean": float(_cfg.traits["private"]["subjective_audit_prob"]["mean"]),
+        "priv_audit_std": float(_cfg.traits["private"]["subjective_audit_prob"]["std"]),
+        "priv_pn_mean": _cfg.traits["private"]["personal_norms"]["mean"],
+        "priv_pn_std": _cfg.traits["private"]["personal_norms"]["std"],
+        "priv_sn_mean": _cfg.traits["private"]["social_norms"]["mean"],
+        "priv_sn_std": _cfg.traits["private"]["social_norms"]["std"],
+        "priv_stn_mean": _cfg.traits["private"]["societal_norms"]["mean"],
+        "priv_stn_std": _cfg.traits["private"]["societal_norms"]["std"],
+        "priv_pso_mean": _cfg.traits["private"]["pso"]["mean"],
+        "priv_pso_std": _cfg.traits["private"]["pso"]["std"],
+        "priv_pt_mean": _cfg.traits["private"]["p_trust"]["mean"],
+        "priv_pt_std": _cfg.traits["private"]["p_trust"]["std"],
+        
+        # Business Traits (Explicit Widget Keys)
+        "biz_audit_mean": float(_cfg.traits["business"]["subjective_audit_prob"]["mean"]),
+        "biz_audit_std": float(_cfg.traits["business"]["subjective_audit_prob"]["std"]),
+        "biz_pn_mean": _cfg.traits["business"]["personal_norms"]["mean"],
+        "biz_pn_std": _cfg.traits["business"]["personal_norms"]["std"],
+        "biz_sn_mean": _cfg.traits["business"]["social_norms"]["mean"],
+        "biz_sn_std": _cfg.traits["business"]["social_norms"]["std"],
+        "biz_stn_mean": _cfg.traits["business"]["societal_norms"]["mean"],
+        "biz_stn_std": _cfg.traits["business"]["societal_norms"]["std"],
+        "biz_pso_mean": _cfg.traits["business"]["pso"]["mean"],
+        "biz_pso_std": _cfg.traits["business"]["pso"]["std"],
+        "biz_pt_mean": _cfg.traits["business"]["p_trust"]["mean"],
+        "biz_pt_std": _cfg.traits["business"]["p_trust"]["std"],
+        
+        # Legacy Aliases (Legacy support)
         "risk_slider": _cfg.traits["private"]["risk_aversion"]["mean"],
         "sl_priv_pn": _cfg.traits["private"]["personal_norms"]["mean"],
         "sl_priv_pso": _cfg.traits["private"]["pso"]["mean"],
